@@ -4,30 +4,36 @@ import re
 from bs4 import BeautifulSoup
 import time
 import datetime
+from typing import Union, List, Tuple
 
 
 class Page:
-    def __init__(self, url):
+    def __init__(self, url: str):
         self.url: str = url
         self.soup: BeautifulSoup = BeautifulSoup
         self.res: requests.models.Response = requests.models.Response()
 
-    def send_request(self):
+    def send_request(self) -> None:
         self.res = requests.get(self.url)
         self.soup = BeautifulSoup(self.res.text, 'html.parser')
 
-    def judge_not_found(self):
+    def judge_not_found(self) -> bool:
         if self.res.status_code == 404:
             return True
         else:
             return False
 
 
-class ScorePage(Page):
+class GamePage(Page):
+    def __init__(self, url):
+        super().__init__(url)
+        self.game_num: str = re.search('\d{10}', self.url).group()
+        self.year: str = self.game_num[0:4]
+
+
+class ScorePage(GamePage):
     def make_game_dir_name(self) -> str:
-        game_num: str = re.search('\d{10}', self.url).group()
-        year: str = game_num[0:4]
-        return fr'./HTML/{year}/index/{game_num}'
+        return fr'./HTML/{self.year}/index/{self.game_num}'
 
     def judge_farm(self) -> bool:
         tag = self.soup.find('th', class_='bb-splitsTable__head bb-splitsTable__head--bench')
@@ -36,7 +42,7 @@ class ScorePage(Page):
         else:
             return False
 
-    def judge_no_game(self):
+    def judge_no_game(self) -> bool:
         div_tag = self.soup.find('div', id='detail_footer_leftbox')
         status_text = div_tag.p.get_text()
 
@@ -45,10 +51,21 @@ class ScorePage(Page):
         else:
             return False
 
+    def judge_in_period(self, start_m: int, start_d: int, stop_m: int, stop_d: int) -> bool:
+        p = self.soup.select_one('#contentMain > div > div.bb-main > div.bb-modCommon02 > p.bb-gameDescription')
+        game_month = int(re.search(r'\d{1,2}月', str(p)).group()[:-1])
+        game_day = int(re.search(r'\d{1,2}日', str(p)).group()[:-1])
+        game_num = game_month * 100 + game_day
 
-class IndexPage(Page):
-    def get_next_url(self):
-        div_tag = self.soup.find('div', id='detail_footer_leftbox')
+        start_num = start_m * 100 + start_d
+        stop_num = stop_m * 100 + stop_d
+
+        return start_num <= game_num <= stop_num
+
+
+class IndexPage(GamePage):
+    def get_next_url(self) -> Union[str, None]:
+        div_tag = self.soup.select_one('#liveinfo')
         status_text = div_tag.p.get_text()
 
         if status_text == '試合終了':
@@ -60,134 +77,173 @@ class IndexPage(Page):
 
         return 'https://baseball.yahoo.co.jp' + url_dir
 
-    def storage_html(self, game_dir):
+    def storage_html(self, game_dir: str) -> None:
         index = self.url[-7:]
         with open(game_dir + rf'/{index}.html', 'w', encoding='utf-8') as f:
             f.write(self.res.text)
             print(f'Done: {game_dir}/{index}.html')
 
 
-class StatsPage(Page):
-    def storage_html(self):
-        game_num: str = re.search('\d{10}', self.url).group()
-        year: str = game_num[0:4]
-        html_name: str = fr'./HTML/{year}/stats/{game_num}.html'
+class StatsPage(GamePage):
+    def storage_html(self) -> None:
+        stats_dir: str = fr'./HTML/{self.year}/stats/'
+        html_name: str = f'{self.game_num}.html'
 
-        with open(html_name, 'w', encoding='utf-8') as f:
+        with open(stats_dir+html_name, 'w', encoding='utf-8') as f:
             f.write(self.res.text)
-            print(html_name)
+            print('Done(stast): ' + stats_dir + html_name)
 
 
-def craw():
-    def decision_date():
-        dt_now = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=9)))
-        now_y_ = dt_now.year
-        now_m_ = dt_now.month
-        now_d_ = dt_now.day
-        start_m_: int = int()
-        start_d_: int = int()
+class SchedulePage(Page):
+    def fetch_game_url_list(self) -> List[str]:
+        game_url_list: list = []
 
-        # npbの公式サイトから開幕日を取得
-        res = requests.get(f'https://npb.jp/event/{now_y_}/')
-        soup = BeautifulSoup(res.content, 'html.parser')
+        central_list = self.soup.select('#gm_card > section:nth-child(1) > ul > li > a')
+        pacific_list = self.soup.select('#gm_card > section:nth-child(2) > ul > li > a')
 
-        p_list = soup.select('#layout > div.contents > div > p')
-
-        for p in p_list:
-            if 'セントラル・リーグ開幕' in str(p) and 'パシフィック・リーグ開幕' in str(p):
-                split_list = str(p).split('br')
-                month_1 = re.search(r'\d{1,2}月', split_list[0]).group()[:-1]
-                month_2 = re.search(r'\d{1,2}月', split_list[1]).group()[:-1]
-
-                day_1 = re.search(r'\d{1,2}日', split_list[0]).group()[:-1]
-                day_2 = re.search(r'\d{1,2}日', split_list[1]).group()[:-1]
-
-                month_1, month_2, day_1, day_2 = list(map(int, [month_1, month_2, day_1, day_2]))
-
-                if month_1 * 100 + day_1 < month_2 * 100 + day_2:
-                    start_m_ = month_1
-                    start_d_ = day_1
-                else:
-                    start_m_ = month_2
-                    start_d_ = day_2
-
-            elif '第7戦' in str(p):
-                last_date = str(p).split('br')[-1]
-                last_month = int(re.search(r'\d{1,2}月', last_date).group()[:-1])
-                last_day = int(re.search(r'\d{1,2}日', last_date).group()[:-1])
+        for game in central_list + pacific_list:
+            game_url_list.append(game.get('href'))
+        return list(map(lambda url: url.replace('index', ''), game_url_list))
 
 
-        if now_m_ * 100 + now_d_ > last_month*100 + last_day:
-            return now_y_, last_month, last_day, start_m_, start_d_
+def craw(now_y: int = None, start_m: int = None, start_d: int = None, stop_m: int = None, stop_d: int = None) -> None:
+    # 入力に1つでもNoneがあればこちら側で決める
+    if any(arg is None for arg in [now_y, start_m, start_d, stop_m, stop_d]):
+        now_y, start_m, start_d, stop_m, stop_d = decision_date()
 
-        return now_y_, now_m_, now_d_, start_m_, start_d_
+    make_dir_if_not_exists(now_y)
 
-    def make_date_url_list(year: int, start_month: int, start_day: int, stop_month: int, stop_day: int) -> list:
-        last_day_list: list = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+    schedule_rul_list = make_schedule_url_list(now_y, start_m, start_d, stop_m, stop_d)
+    for schedule_url in schedule_rul_list:
+        schedulePage = SchedulePage(schedule_url)
+        schedulePage.send_request()
+        game_url_list = schedulePage.fetch_game_url_list()
 
-        if (year % 4 == 0 and year % 100 != 0) or year % 400 == 0:
-            last_day_list[1] = 29
-
-        root_url: str = 'https://baseball.yahoo.co.jp/npb/game/'
-        last_day_list[stop_month - 1] = stop_day
-
-        date_url_list = []
-        for month in range(start_month, stop_month + 1):
-            first_day = 1 if month != start_month else start_day
-
-            for day in range(first_day, last_day_list[month - 1] + 1):
-                date_url: str = root_url + str(year) + str(month).zfill(2) + str(day).zfill(2)
-                date_url_list.append(date_url)
-
-        return date_url_list
-
-    def fetch_game_html(url, game_dir_):
-        index_page = IndexPage(url)
-
-        time.sleep(1)
-        index_page.send_request()
-
-        #  404なら例外を投げる
-        if index_page.judge_not_found():
-            return Exception('Error:status_code404')
-
-        index_page.storage_html(game_dir_)
-
-        next_url = index_page.get_next_url()
-
-        if next_url is None:
-            return
-
-        fetch_game_html(next_url, game_dir_)
-
-    # 本体
-    now_y, now_m, now_d, start_m, start_d = decision_date()
-
-    for date_rul in make_date_url_list(now_y, start_m, start_d, now_m, now_d - 1):
-        for game_no in range(1, 7):
-            score_url: str = date_rul + str(game_no).zfill(2) + '/score'
-            stats_url: str = date_rul + str(game_no).zfill(2) + '/stats'
+        for game_url in game_url_list:
+            score_url: str = game_url + 'score'
+            stats_url: str = game_url + 'stats'
             start_url = score_url + '?index=0110100'
 
-            score_page = ScorePage(score_url)
-            stats_page = StatsPage(stats_url)
-            game_dir = score_page.make_game_dir_name()
+            scorePage = ScorePage(score_url)
+            statsPage = StatsPage(stats_url)
+            game_dir = scorePage.make_game_dir_name()
             if os.path.exists(game_dir):
                 continue
 
             time.sleep(1)
-            score_page.send_request()
+            scorePage.send_request()
 
-            if score_page.judge_not_found() or score_page.judge_farm():
+            if scorePage.judge_not_found() or scorePage.judge_farm():
                 break
-            elif score_page.judge_no_game():
+            elif scorePage.judge_no_game():
                 continue
             else:
-                stats_page.send_request()
-                stats_page.storage_html()
+                statsPage.send_request()
+                statsPage.storage_html()
 
                 os.mkdir(game_dir)
                 fetch_game_html(start_url, game_dir)
+
+
+# 良い感じに範囲決めてくれるやつ
+def decision_date() -> Tuple[int, int, int, int, int]:
+    dt_now = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=9)))
+    now_y = dt_now.year
+    now_m = dt_now.month
+    now_d = dt_now.day
+    start_m: int = int()
+    start_d: int = int()
+    last_month: int = -1
+    last_day: int = -1
+
+    # npbの公式サイトから開幕日を取得
+    res = requests.get(f'https://npb.jp/event/{now_y}/')
+    soup = BeautifulSoup(res.content, 'html.parser')
+
+    p_list = soup.select('#layout > div.contents > div > p')
+
+    for p in p_list:
+        if 'セントラル・リーグ開幕' in str(p) and 'パシフィック・リーグ開幕' in str(p):
+            split_list = str(p).split('br')
+            month_1 = re.search(r'\d{1,2}月', split_list[0]).group()[:-1]
+            month_2 = re.search(r'\d{1,2}月', split_list[1]).group()[:-1]
+
+            day_1 = re.search(r'\d{1,2}日', split_list[0]).group()[:-1]
+            day_2 = re.search(r'\d{1,2}日', split_list[1]).group()[:-1]
+
+            month_1, month_2, day_1, day_2 = list(map(int, [month_1, month_2, day_1, day_2]))
+
+            if month_1 * 100 + day_1 < month_2 * 100 + day_2:
+                start_m = month_1
+                start_d = day_1
+            else:
+                start_m = month_2
+                start_d = day_2
+
+        elif '第7戦' in str(p):
+            last_date = str(p).split('br')[-1]
+            last_month = int(re.search(r'\d{1,2}月', last_date).group()[:-1])
+            last_day = int(re.search(r'\d{1,2}日', last_date).group()[:-1])
+
+    if last_month == -1 or last_day == -1:
+        Exception('シーズン終了日の取得に失敗しました')
+    elif now_m * 100 + now_d > last_month * 100 + last_day:
+        return now_y, last_month, last_day, start_m, start_d
+
+    return now_y, start_m, start_d, now_m, now_d
+
+
+# 範囲内の試合のscheduleページのurlを生成
+def make_schedule_url_list(year: int, start_month: int, start_day: int, stop_month: int, stop_day: int) -> List[str]:
+    last_day_list: list = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+
+    if (year % 4 == 0 and year % 100 != 0) or year % 400 == 0:
+        last_day_list[1] = 29
+
+    root_url: str = 'https://baseball.yahoo.co.jp/npb/schedule/?date='
+    last_day_list[stop_month - 1] = stop_day
+
+    date_url_list = []
+    for month in range(start_month, stop_month + 1):
+        first_day = 1 if month != start_month else start_day
+        for day in range(first_day, last_day_list[month - 1] + 1):
+            date_url: str = root_url + str(year) + '-' + str(month).zfill(2) + '-' + str(day).zfill(2)
+            date_url_list.append(date_url)
+
+    return date_url_list
+
+
+def fetch_game_html(url: str, game_dir: str):
+    index_page = IndexPage(url)
+
+    time.sleep(1)
+    index_page.send_request()
+
+    #  404なら例外を投げる
+    if index_page.judge_not_found():
+        return Exception('Error:status_code404: ', url)
+
+    index_page.storage_html(game_dir)
+
+    next_url = index_page.get_next_url()
+
+    if next_url is None:
+        return
+
+    fetch_game_html(next_url, game_dir)
+
+
+def make_dir_if_not_exists(year: int):
+    year_dir = f'./HTML/{year}'
+    stats_dir = year_dir + '/stats'
+    index_dir = year_dir + '/index'
+
+    if not os.path.exists(year_dir):
+        os.mkdir(year_dir)
+    if not os.path.exists(stats_dir):
+        os.mkdir(stats_dir)
+    if not os.path.exists(index_dir):
+        os.mkdir(index_dir)
 
 
 if __name__ == '__main__':
