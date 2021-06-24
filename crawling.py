@@ -128,14 +128,13 @@ def craw(now_y: int = None, start_m: int = None, start_d: int = None, stop_m: in
             statsPage = StatsPage(stats_url)
             game_dir = scorePage.make_game_dir_name()
             if os.path.exists(game_dir):
+                print('skip: ' + game_dir)
                 continue
 
             time.sleep(1)
             scorePage.send_request()
 
-            if scorePage.judge_not_found() or scorePage.judge_farm():
-                break
-            elif scorePage.judge_no_game():
+            if scorePage.judge_no_game():
                 continue
             else:
                 statsPage.send_request()
@@ -248,3 +247,4 @@ def make_dir_if_not_exists(year: int):
 
 if __name__ == '__main__':
     craw()
+
