@@ -188,9 +188,9 @@ def decision_date() -> Tuple[int, int, int, int, int]:
     if last_month == -1 or last_day == -1:
         Exception('シーズン終了日の取得に失敗しました')
     elif now_m * 100 + now_d > last_month * 100 + last_day:
-        return now_y, last_month, last_day, start_m, start_d
+        return now_y,  start_m, start_d, last_month, last_day
 
-    return now_y, start_m, start_d, now_m, now_d
+    return now_y, start_m, start_d, now_m - 1, now_d - 1
 
 
 # 範囲内の試合のscheduleページのurlを生成
