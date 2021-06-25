@@ -41,8 +41,6 @@ class TestIndexPageScraper(unittest.TestCase):
         self.assertTrue(self.outPage.judge_out())
         self.assertFalse(self.notOutPage.judge_out())
 
-        self.assertEqual(self.indexPage.take_date(), (3, 26, '金'))
-
         self.assertEqual(self.indexPage.take_match_player_data(), (1200041, False, 1100061, False))
         self.assertEqual(self.notOutPage.take_match_player_data(), (1600081, True, 700027, True))
 
@@ -81,6 +79,36 @@ class TestPlayerPageScraper(unittest.TestCase):
                           'position': '投手', 'date_of_birth': '1980-9-13', 'height': 182,
                           'weight': 92, 'throw_arm': '右', 'batting_arm': '右', 'draft_year': 1998,
                           'draft_rank': '1位', 'total_year': 15})
+
+
+class TestStatsPageScraper(unittest.TestCase):
+    def setUp(self) -> None:
+        stats_path = './HTML/scraping/2021000095.html'
+
+        self.statsPage = scraping.StatsPageScraper(stats_path)
+
+    def test_stats_page_scraper(self):
+        self.assertEqual(self.statsPage.take_date(), ('2021-3-26', '金'))
+        self.assertEqual(self.statsPage.take_point_board(),
+                         ({1: 0, 2: 2, 3: 1, 4: 0, 5: 0, 6: 0, 7: 2, 8: 0, 9: 2, 'total': 7, 'hits': 12, 'miss': 1},
+                          {1: 3, 2: 0, 3: 3, 4: 0, 5: 0, 6: 0, 7: 0, 8: 1, 9: 1, 'total': 8, 'hits': 9, 'miss': 1}))
+
+        self.assertEqual(self.statsPage.take_player_stats()[0][0],
+                         {'player_id': '1100061', 'avg': 0.0, 'times_at_bat': 4, 'run': 0,
+                          'hits': 0, 'rbi': 1, 'k': 1, 'walks': 1, 'hit_by_pitch': 0,
+                          'sacrifice': 0, 'steal': 0, 'miss': 0, 'hr': 0})
+        self.assertEqual(self.statsPage.take_player_stats()[0][6],
+                         {'player_id': '1600085', 'avg': None, 'times_at_bat': 0, 'run': 0,
+                          'hits': 0, 'rbi': 0, 'k': 0, 'walks': 1, 'hit_by_pitch': 0,
+                          'sacrifice': 0, 'steal': 0, 'miss': 0, 'hr': 0})
+
+        self.assertEqual(self.statsPage.take_player_stats()[1][0],
+                         {'era': 15.0, 'inning': 3.0, 'pitch_num': 79,
+                          'batter_match_num': 18, 'hits': 4, 'hr': 1, 'k': 6,
+                          'walks': 5, 'hit_by_pitch': 0, 'balk': 0, 'run': 6, 'er': 5})
+        self.assertEqual(self.statsPage.take_player_stats()[1][6],
+                         {'era': None, 'inning': 0.0, 'pitch_num': 3, 'batter_match_num': 1,
+                          'hits': 1, 'hr': 1, 'k': 0, 'walks': 0, 'hit_by_pitch': 0, 'balk': 0, 'run': 1, 'er': 1})
 
 
 if __name__ == '__main__':
