@@ -7,8 +7,6 @@ class PageScraper:
     def __init__(self, html_path: str):
         self.html_path = html_path
 
-        self.top_or_bottom = int(self.html_path[-10])
-
         with open(html_path, encoding='utf-8') as f:
             self.soup = BeautifulSoup(f, 'html.parser')
 
@@ -16,6 +14,7 @@ class PageScraper:
 class IndexPageScraper(PageScraper):
     def __init__(self, html_path: str):
         super().__init__(html_path)
+        self.top_or_bottom = int(self.html_path[-10])
         self.pitch_data_dict: dict = {}
 
     #  1球ごとの投球内容は[打席での球数, 試合での球数, 球種, 球速, 結果, ストライクカウント, ボールカウント]
@@ -95,16 +94,16 @@ class IndexPageScraper(PageScraper):
         self.pitch_data_dict['out'] = pitch_result_number == 3 or '三振' in pitch_result_text
         return self.pitch_data_dict['out']
 
-    def take_date(self) -> Tuple[int, int, str]:
+    def take_date(self) -> Tuple[int, str]:
         p = self.soup.select_one('#contentMain > div > div.bb-main > div.bb-modCommon02 > p.bb-gameDescription')
         game_month = int(re.search(r'\d{1,2}月', str(p)).group()[:-1])
         game_day = int(re.search(r'\d{1,2}日', str(p)).group()[:-1])
         day_week = re.search(r'（[日月火水木金土]）', str(p)).group().replace('（', '').replace('）', '')
 
-        self.pitch_data_dict['month'] = game_month
-        self.pitch_data_dict['day'] = game_day
+        year = int(re.search(r'\d{4}', self.html_path).group())
+        self.pitch_data_dict['date'] = f'{year}-{game_month}-{game_day}'
         self.pitch_data_dict['day_week'] = day_week
-        return self.pitch_data_dict['month'], self.pitch_data_dict['day'], self.pitch_data_dict['day_week']
+        return self.pitch_data_dict['date'], self.pitch_data_dict['day_week']
 
     def take_match_player_data(self) -> Tuple[int, bool, int, bool]:
         def take_player_data(div):
@@ -241,7 +240,7 @@ class IndexPageScraper(PageScraper):
                         self.pitch_data_dict['third_runner'])
         return return_tuple
 
-    def take_rbi(self):
+    def take_rbi(self) -> int:
         match = re.search(r'＋\d点', self.pitch_data_dict['result_big'])
         if match:
             rbi_str = re.sub(r'\D', '', match.group())
@@ -250,16 +249,16 @@ class IndexPageScraper(PageScraper):
         else:
             return 0
 
-    def take_match_team(self):
+    def take_match_team(self) -> Tuple[str, str]:
         attack_team = str
         defense_team = str
 
         first_team = self.soup.select_one('#ing_brd > tbody > tr:nth-child(1) > '
-                                     'td.bb-gameScoreTable__data.bb-gameScoreTable__data--team > '
-                                     'a').get_text()
+                                          'td.bb-gameScoreTable__data.bb-gameScoreTable__data--team > '
+                                          'a').get_text()
         second_team = self.soup.select_one('#ing_brd > tbody > tr:nth-child(2) > '
-                                      'td.bb-gameScoreTable__data.bb-gameScoreTable__data--team > '
-                                      'a').get_text()
+                                           'td.bb-gameScoreTable__data.bb-gameScoreTable__data--team > '
+                                           'a').get_text()
 
         if self.top_or_bottom == 1:
             attack_team, defense_team = first_team, second_team
@@ -268,11 +267,82 @@ class IndexPageScraper(PageScraper):
 
         return attack_team, defense_team
 
-    def judge_non_butter(self):
+    def judge_non_butter(self) -> bool:
         tag = self.soup.select_one('#batt > tbody > tr > td:nth-child(2) > table > tbody >'
-                              ' tr.nm_box > td.nm')
+                                   ' tr.nm_box > td.nm')
         return tag is None
 
 
+class PlayerPageScraper(PageScraper):
+    def take_player_profile(self):
+        player_name = self.soup.select_one('#contentMain > div > div.bb-main > '
+                                           'div.bb-modCommon01 > div > div > div >'
+                                           ' ruby > h1').get_text().replace(' ', '')
+
+        team_name_dict = {'team1': '巨人', 'team2': 'ヤクルト', 'team3': 'DeNA',
+                          'team4': '中日', 'team5': '阪神', 'team6': '広島',
+                          'team7': '西武', 'team8': '日本ハム', 'team9': 'ロッテ',
+                          'team11': 'オリックス', 'team12': 'ソフトバンク', 'team376': '楽天'}
+
+        team_num: str = self.soup.select_one('#contentMain > div > div.bb-main > '
+                                             'section:nth-child(3) > header').get('class')[2].split('--')[-1]
+        team_name = team_name_dict[team_num]
+
+        uniform_number = int(self.soup.select_one('#contentMain > div > div.bb-main > '
+                                                  'div.bb-modCommon01 > div > div > div > '
+                                                  'div > p.bb-profile__number').get_text())
+        position = self.soup.select_one('#contentMain > div > div.bb-main > '
+                                        'div.bb-modCommon01 > div > div > div > div > '
+                                        'p.bb-profile__position').get_text()
+
+        dominant_arm = self.soup.select_one('#contentMain > div > div.bb-main > '
+                                            'div.bb-modCommon01 > div > div > '
+                                            'div.bb-profile__data > dl:nth-child(8) > dd').get_text()
+        throw_arm = dominant_arm[0]
+        batting_arm = dominant_arm[3]
+
+        height_str: str = self.soup.select_one('#contentMain > div > div.bb-main > '
+                                               'div.bb-modCommon01 > div > div > '
+                                               'div.bb-profile__data > dl:nth-child(5) > '
+                                               'dd').get_text()
+        weight_str: str = self.soup.select_one('#contentMain > div > div.bb-main > '
+                                               'div.bb-modCommon01 > div > div > '
+                                               'div.bb-profile__data > dl:nth-child(6) > '
+                                               'dd').get_text()
+        height = int(re.search(r'\d+', height_str).group())
+        weight = int(re.search(r'\d+', weight_str).group())
+
+        date_of_birth_tag = self.soup.select_one('#contentMain > div > div.bb-main > '
+                                                 'div.bb-modCommon01 > div > div > '
+                                                 'div > dl:nth-child(3) > '
+                                                 'dd').get_text().split('（')[0]
+        date_split_list = re.findall(r'\d+', date_of_birth_tag)
+        date_of_birth = f'{date_split_list[0]}-{date_split_list[1]}-{date_split_list[2]}'
+
+        draft_tag = self.soup.select_one('#contentMain > div > div.bb-main > '
+                                         'div.bb-modCommon01 > div > div > '
+                                         'div.bb-profile__data > dl:nth-child(9) > dd').get_text()
+        if draft_tag == '-':
+            draft_year = None
+            draft_rank = None
+        else:
+            draft_year = int(re.search(r'\d{4}', draft_tag).group())
+            draft_rank = draft_tag[5:].replace('（', '').replace('）', '')
+
+        total_year_tag = self.soup.select_one('#contentMain > div > div.bb-main > '
+                                              'div.bb-modCommon01 > div > div > '
+                                              'div.bb-profile__data > dl:nth-child(10) > dd').get_text()
+        total_year = int(re.search(r'\d+', total_year_tag).group())
+
+        return_dict: dict = {'player_name': player_name, 'team_name': team_name, 'uniform_number': uniform_number,
+                             'position': position, 'date_of_birth': date_of_birth, 'height': height, 'weight': weight,
+                             'throw_arm': throw_arm, 'batting_arm': batting_arm, 'draft_year': draft_year,
+                             'draft_rank': draft_rank, 'total_year': total_year}
+        return return_dict
+
+
 if __name__ == '__main__':
-    indexPageScraper = IndexPageScraper('./HTML/2021/index/2021000095/0820500.html')
+    playerPage = PlayerPageScraper('./HTML/player/11715.html')
+    indexPage = IndexPageScraper('./HTML/2021/index/2021000095/0110100.html')
+    print(playerPage.take_player_profile())
+    print(indexPage.take_date())
