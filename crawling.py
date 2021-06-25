@@ -14,6 +14,7 @@ class Page:
         self.res: requests.models.Response = requests.models.Response()
 
     def send_request(self) -> None:
+        time.sleep(0.5)
         self.res = requests.get(self.url)
         self.soup = BeautifulSoup(self.res.text, 'html.parser')
 
@@ -131,7 +132,6 @@ def craw(now_y: int = None, start_m: int = None, start_d: int = None, stop_m: in
                 print('skip: ' + game_dir)
                 continue
 
-            time.sleep(1)
             scorePage.send_request()
 
             if scorePage.judge_no_game():
@@ -189,7 +189,7 @@ def decision_date() -> Tuple[int, int, int, int, int]:
     elif now_m * 100 + now_d > last_month * 100 + last_day:
         return now_y,  start_m, start_d, last_month, last_day
 
-    return now_y, start_m, start_d, now_m - 1, now_d - 1
+    return now_y, start_m, start_d, now_m, now_d - 1
 
 
 # 範囲内の試合のscheduleページのurlを生成
@@ -215,7 +215,6 @@ def make_schedule_url_list(year: int, start_month: int, start_day: int, stop_mon
 def fetch_game_html(url: str, game_dir: str):
     index_page = IndexPage(url)
 
-    time.sleep(1)
     index_page.send_request()
 
     #  404なら例外を投げる
@@ -233,10 +232,13 @@ def fetch_game_html(url: str, game_dir: str):
 
 
 def make_dir_if_not_exists(year: int):
+    html_dir = './HTML'
     year_dir = f'./HTML/{year}'
     stats_dir = year_dir + '/stats'
     index_dir = year_dir + '/index'
 
+    if not os.path.exists(html_dir):
+        os.mkdir(html_dir)
     if not os.path.exists(year_dir):
         os.mkdir(year_dir)
     if not os.path.exists(stats_dir):
@@ -247,4 +249,3 @@ def make_dir_if_not_exists(year: int):
 
 if __name__ == '__main__':
     craw()
-
