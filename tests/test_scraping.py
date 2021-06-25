@@ -70,5 +70,18 @@ class TestIndexPageScraper(unittest.TestCase):
         self.assertFalse(self.indexPage.judge_non_butter())
 
 
+class TestPlayerPageScraper(unittest.TestCase):
+    def setUp(self) -> None:
+        matsuzaka_path = './HTML/scraping/player_11715.html'
+        self.matsuzakaPage = scraping.PlayerPageScraper(matsuzaka_path)
+
+    def test_player_page_scraper(self):
+        self.assertEqual(self.matsuzakaPage.take_player_profile(),
+                         {'player_name': '松坂大輔', 'team_name': '西武', 'uniform_number': 16,
+                          'position': '投手', 'date_of_birth': '1980-9-13', 'height': 182,
+                          'weight': 92, 'throw_arm': '右', 'batting_arm': '右', 'draft_year': 1998,
+                          'draft_rank': '1位', 'total_year': 15})
+
+
 if __name__ == '__main__':
     unittest.main()
