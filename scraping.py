@@ -94,17 +94,6 @@ class IndexPageScraper(PageScraper):
         self.pitch_data_dict['out'] = pitch_result_number == 3 or '三振' in pitch_result_text
         return self.pitch_data_dict['out']
 
-    def take_date(self) -> Tuple[int, str]:
-        p = self.soup.select_one('#contentMain > div > div.bb-main > div.bb-modCommon02 > p.bb-gameDescription')
-        game_month = int(re.search(r'\d{1,2}月', str(p)).group()[:-1])
-        game_day = int(re.search(r'\d{1,2}日', str(p)).group()[:-1])
-        day_week = re.search(r'（[日月火水木金土]）', str(p)).group().replace('（', '').replace('）', '')
-
-        year = int(re.search(r'\d{4}', self.html_path).group())
-        self.pitch_data_dict['date'] = f'{year}-{game_month}-{game_day}'
-        self.pitch_data_dict['day_week'] = day_week
-        return self.pitch_data_dict['date'], self.pitch_data_dict['day_week']
-
     def take_match_player_data(self) -> Tuple[int, bool, int, bool]:
         def take_player_data(div):
             tr_nm_box = div.select_one('table > tbody > tr > '
@@ -240,15 +229,6 @@ class IndexPageScraper(PageScraper):
                         self.pitch_data_dict['third_runner'])
         return return_tuple
 
-    def take_rbi(self) -> int:
-        match = re.search(r'＋\d点', self.pitch_data_dict['result_big'])
-        if match:
-            rbi_str = re.sub(r'\D', '', match.group())
-            rbi = int(rbi_str)
-            return rbi
-        else:
-            return 0
-
     def take_match_team(self) -> Tuple[str, str]:
         attack_team = str
         defense_team = str
@@ -266,6 +246,15 @@ class IndexPageScraper(PageScraper):
             attack_team, defense_team = second_team, first_team
 
         return attack_team, defense_team
+
+    def take_rbi(self) -> int:
+        match = re.search(r'＋\d点', self.pitch_data_dict['result_big'])
+        if match:
+            rbi_str = re.sub(r'\D', '', match.group())
+            rbi = int(rbi_str)
+            return rbi
+        else:
+            return 0
 
     def judge_non_butter(self) -> bool:
         tag = self.soup.select_one('#batt > tbody > tr > td:nth-child(2) > table > tbody >'
@@ -341,8 +330,99 @@ class PlayerPageScraper(PageScraper):
         return return_dict
 
 
+class StatsPageScraper(PageScraper):
+    def take_date(self) -> Tuple[str, str]:
+        p = self.soup.select_one('#contentMain > div > div.bb-main > div.bb-modCommon02 > p.bb-gameDescription')
+        game_month = int(re.search(r'\d{1,2}月', str(p)).group()[:-1])
+        game_day = int(re.search(r'\d{1,2}日', str(p)).group()[:-1])
+        day_week = re.search(r'（[日月火水木金土]）', str(p)).group().replace('（', '').replace('）', '')
+
+        year = int(re.search(r'\d{4}', self.html_path).group())
+        # self.pitch_data_dict['date'] = f'{year}-{game_month}-{game_day}'
+        # self.pitch_data_dict['day_week'] = day_week
+        # return self.pitch_data_dict['date'], self.pitch_data_dict['day_week']
+        return f'{year}-{game_month}-{game_day}', day_week
+
+    def take_point_board(self) -> Tuple[dict, dict]:
+        first_point_dict: dict = {}
+        second_point_dict: dict = {}
+
+        first_point_bord = self.soup.select('#ing_brd > tbody > tr:nth-child(1)  .bb-gameScoreTable__data')
+        second_point_bord = self.soup.select('#ing_brd > tbody > tr:nth-child(2) .bb-gameScoreTable__data')
+
+        i = 0
+        for first_point, second_point in zip(first_point_bord, second_point_bord):
+            if i == 0:
+                i += 1
+                continue
+            first_point_dict[i] = int(first_point.select_one('a').get_text().replace('X', ''))
+            second_point_dict[i] = int(second_point.select_one('a').get_text().replace('X', ''))
+            i += 1
+
+        first_point_bord = self.soup.select('#ing_brd > tbody > tr:nth-child(1)  .bb-gameScoreTable__total')
+        second_point_bord = self.soup.select('#ing_brd > tbody > tr:nth-child(2) .bb-gameScoreTable__total')
+
+        first_point_dict['total'] = int(first_point_bord[0].get_text())
+        first_point_dict['hits'] = int(first_point_bord[1].get_text())
+        first_point_dict['miss'] = int(first_point_bord[2].get_text())
+        second_point_dict['total'] = int(second_point_bord[0].get_text())
+        second_point_dict['hits'] = int(second_point_bord[1].get_text())
+        second_point_dict['miss'] = int(second_point_bord[2].get_text())
+
+        return first_point_dict, second_point_dict
+
+    def take_player_stats(self) -> Tuple[List[dict], List[dict]]:
+        batting_stats_list: list = []
+        pitching_stats_list: list = []
+        batter_tr_list_first = self.soup.select('.bb-blowResultsTable > table > tbody > .bb-statsTable__row')
+        batter_tr_list_second = self.soup.select('bb-blowResultsTable:nth-child(2) > table > tbody > .bb-statsTable__row')
+
+        for batter_tr in batter_tr_list_first + batter_tr_list_second:
+            batter_stats_dict: dict = {}
+            batter_td_list = batter_tr.select('td')
+
+            batter_stats_dict['player_id'] = batter_td_list[1].select_one('a').get('href').split('/')[3]
+            batter_stats_dict['avg'] = float(batter_td_list[2].get_text()) if batter_td_list[2].get_text() != '-' else None
+            batter_stats_dict['times_at_bat'] = int(batter_td_list[3].get_text())
+            batter_stats_dict['run'] = int(batter_td_list[4].get_text())
+            batter_stats_dict['hits'] = int(batter_td_list[5].get_text())
+            batter_stats_dict['rbi'] = int(batter_td_list[6].get_text())
+            batter_stats_dict['k'] = int(batter_td_list[7].get_text())
+            batter_stats_dict['walks'] = int(batter_td_list[8].get_text())
+            batter_stats_dict['hit_by_pitch'] = int(batter_td_list[9].get_text())
+            batter_stats_dict['sacrifice'] = int(batter_td_list[10].get_text())
+            batter_stats_dict['steal'] = int(batter_td_list[11].get_text())
+            batter_stats_dict['miss'] = int(batter_td_list[12].get_text())
+            batter_stats_dict['hr'] = int(batter_td_list[13].get_text())
+
+            batting_stats_list.append(batter_stats_dict)
+
+        pitcher_tr_list_first = self.soup.select('#gm_stats > section:nth-child(2) > section:nth-child(2) > table > tbody > tr')
+        pitcher_tr_list_second = self.soup.select('#gm_stats > section:nth-child(2) > section:nth-child(3) > table > tbody > tr')
+
+        for pitcher_tr in pitcher_tr_list_first + pitcher_tr_list_second:
+            pitcher_stats_dict: dict = {}
+            pitcher_td_list = pitcher_tr.select('td')
+
+            td_str = pitcher_td_list[2].select_one('p')
+            pitcher_stats_dict['era'] = float(td_str.get_text()) if td_str.get_text() != '-' else None
+            pitcher_stats_dict['inning'] = float(pitcher_td_list[3].get_text())
+            pitcher_stats_dict['pitch_num'] = int(pitcher_td_list[4].get_text())
+            pitcher_stats_dict['batter_match_num'] = int(pitcher_td_list[5].get_text())
+            pitcher_stats_dict['hits'] = int(pitcher_td_list[6].get_text())
+            pitcher_stats_dict['hr'] = int(pitcher_td_list[7].get_text())
+            pitcher_stats_dict['k'] = int(pitcher_td_list[8].get_text())
+            pitcher_stats_dict['walks'] = int(pitcher_td_list[9].get_text())
+            pitcher_stats_dict['hit_by_pitch'] = int(pitcher_td_list[10].get_text())
+            pitcher_stats_dict['balk'] = int(pitcher_td_list[11].get_text())
+            pitcher_stats_dict['run'] = int(pitcher_td_list[12].get_text())
+            pitcher_stats_dict['er'] = int(pitcher_td_list[13].get_text())
+
+            pitching_stats_list.append(pitcher_stats_dict)
+
+        return batting_stats_list, pitching_stats_list
+
+
 if __name__ == '__main__':
-    playerPage = PlayerPageScraper('./HTML/player/11715.html')
-    indexPage = IndexPageScraper('./HTML/2021/index/2021000095/0110100.html')
-    print(playerPage.take_player_profile())
-    print(indexPage.take_date())
+    statsPage = StatsPageScraper('./HTML/2021/stats/2021000095.html')
+    print(statsPage.take_player_stats()[1][6])
