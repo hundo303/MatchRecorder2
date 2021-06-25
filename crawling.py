@@ -90,12 +90,16 @@ class StatsPage(GamePage):
         stats_dir: str = fr'./HTML/{self.year}/stats/'
         html_name: str = f'{self.game_num}.html'
 
-        with open(stats_dir+html_name, 'w', encoding='utf-8') as f:
+        with open(stats_dir + html_name, 'w', encoding='utf-8') as f:
             f.write(self.res.text)
             print('Done(stast): ' + stats_dir + html_name)
 
 
 class SchedulePage(Page):
+    def __init__(self, url: str, year: int):
+        super().__init__(url)
+        self.schedule_path = f'./HTML/{year}/schedule/{url[-10:]}.html'
+
     def fetch_game_url_list(self) -> List[str]:
         game_url_list: list = []
 
@@ -106,18 +110,71 @@ class SchedulePage(Page):
             game_url_list.append(game.get('href'))
         return list(map(lambda url: url.replace('index', ''), game_url_list))
 
+    def storage_html(self):
+        with open(self.schedule_path, 'w', encoding='utf-8') as f:
+            f.write(self.res.text)
 
-def craw(now_y: int = None, start_m: int = None, start_d: int = None, stop_m: int = None, stop_d: int = None) -> None:
-    # 入力に1つでもNoneがあればこちら側で決める
+    def set_soup(self):
+        if os.path.exists(self.schedule_path):
+            with open(self.schedule_path, encoding='utf-8 ') as f:
+                self.soup = BeautifulSoup(f, 'html.parser')
+        else:
+            self.send_request()
+            self.storage_html()
+
+
+class MemberPage(Page):
+    player_list: list = []
+
+    @classmethod
+    def append_player_url_list(cls, player_url: str) -> None:
+        cls.player_list.append(player_url)
+
+    @classmethod
+    def get_player_url_list(cls) -> list:
+        return cls.player_list
+
+    def fetch_players(self) -> list:
+        url_list: list = []
+        root_url = 'https://baseball.yahoo.co.jp'
+        tr_list = self.soup.select('#tm_plyr > tr')
+
+        for tr in tr_list:
+            td_list = tr.select('td')
+            player_profile_url = root_url + td_list[1].a.get('href')
+            url_list.append(player_profile_url)
+            self.append_player_url_list(player_profile_url)
+
+        return url_list
+
+
+class PlayerPage(Page):
+    def storage_html(self) -> None:
+        player_id = self.url.split('/')[5]
+        player_dir: str = f'./HTML/player'
+        html_name: str = f'{player_id}.html'
+
+        with open(player_dir + '/' + html_name, 'w', encoding='utf-8') as f:
+            f.write(self.res.text)
+            print(f'Done(player): {player_id}')
+
+
+def craw(fetch_player_flg=False, now_y: int = None, start_m: int = None, start_d: int = None, stop_m: int = None, stop_d: int = None) -> None:
+    # 入力された日付に1つでもNoneがあればこちら側で決める
     if any(arg is None for arg in [now_y, start_m, start_d, stop_m, stop_d]):
         now_y, start_m, start_d, stop_m, stop_d = decision_date()
 
     make_dir_if_not_exists(now_y)
 
+    # playerの取得
+    if fetch_player_flg is True:
+        fetch_player_html()
+
     schedule_rul_list = make_schedule_url_list(now_y, start_m, start_d, stop_m, stop_d)
     for schedule_url in schedule_rul_list:
-        schedulePage = SchedulePage(schedule_url)
-        schedulePage.send_request()
+        schedulePage = SchedulePage(schedule_url, now_y)
+        schedulePage.set_soup()
+
         game_url_list = schedulePage.fetch_game_url_list()
 
         for game_url in game_url_list:
@@ -142,6 +199,30 @@ def craw(now_y: int = None, start_m: int = None, start_d: int = None, stop_m: in
 
                 os.mkdir(game_dir)
                 fetch_game_html(start_url, game_dir)
+
+
+def fetch_player_html():
+    team_number_list = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '11', '12', '376']
+    root_url = 'https://baseball.yahoo.co.jp/npb/teams'
+
+    for team_num in team_number_list:
+        exec(f'team_url_p = root_url + "/{team_num}/memberlist?kind=p"')
+        exec(f'team_url_b = root_url + "/{team_num}/memberlist?kind=b"')
+        exec(f'memberPage{team_num}p = MemberPage(team_url_p)')
+        exec(f'memberPage{team_num}b = MemberPage(team_url_b)')
+        exec(f'memberPage{team_num}p.send_request()')
+        exec(f'memberPage{team_num}b.send_request()')
+        exec(f'memberPage{team_num}p.fetch_players()')
+        exec(f'memberPage{team_num}b.fetch_players()')
+
+    memberPage = MemberPage('')
+    player_url_list = memberPage.get_player_url_list()
+
+    for player_url in player_url_list:
+        playerPage = PlayerPage(player_url)
+
+        playerPage.send_request()
+        playerPage.storage_html()
 
 
 # 良い感じに範囲決めてくれるやつ
@@ -187,7 +268,7 @@ def decision_date() -> Tuple[int, int, int, int, int]:
     if last_month == -1 or last_day == -1:
         Exception('シーズン終了日の取得に失敗しました')
     elif now_m * 100 + now_d > last_month * 100 + last_day:
-        return now_y,  start_m, start_d, last_month, last_day
+        return now_y, start_m, start_d, last_month, last_day
 
     return now_y, start_m, start_d, now_m, now_d - 1
 
@@ -233,19 +314,25 @@ def fetch_game_html(url: str, game_dir: str):
 
 def make_dir_if_not_exists(year: int):
     html_dir = './HTML'
+    player_dir = './HTML/player'
     year_dir = f'./HTML/{year}'
     stats_dir = year_dir + '/stats'
     index_dir = year_dir + '/index'
+    schedule_dir = year_dir + '/schedule'
 
     if not os.path.exists(html_dir):
         os.mkdir(html_dir)
+    if not os.path.exists(player_dir):
+        os.mkdir(player_dir)
     if not os.path.exists(year_dir):
         os.mkdir(year_dir)
     if not os.path.exists(stats_dir):
         os.mkdir(stats_dir)
     if not os.path.exists(index_dir):
         os.mkdir(index_dir)
+    if not os.path.exists(schedule_dir):
+        os.mkdir(schedule_dir)
 
 
 if __name__ == '__main__':
-    craw()
+    craw(fetch_player_flg=True)
