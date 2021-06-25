@@ -15,11 +15,11 @@ class TestScorePage(unittest.TestCase):
         self.scorePageFarm = crawling.ScorePage(score_url)
         self.scorePageNoGame = crawling.ScorePage(score_url)
 
-        with open('HTML/score.html', encoding='utf-8') as f:
+        with open('HTML/crowling/score.html', encoding='utf-8') as f:
             self.scorePage.soup = BeautifulSoup(f, 'html.parser')
-        with open('HTML/score_farm.html', encoding='utf-8') as f:
+        with open('HTML/crowling/score_farm.html', encoding='utf-8') as f:
             self.scorePageFarm.soup = BeautifulSoup(f, 'html.parser')
-        with open('HTML/score_no_game.html', encoding='utf-8') as f:
+        with open('HTML/crowling/score_no_game.html', encoding='utf-8') as f:
             self.scorePageNoGame.soup = BeautifulSoup(f, 'html.parser')
 
     def test_score_page(self):
@@ -43,10 +43,10 @@ class TestIndexPage(unittest.TestCase):
         self.indexPage = crawling.IndexPage(index_url)
         self.indexPageLast = crawling.IndexPage(index_url)
 
-        with open('HTML/index.html', encoding='utf-8') as f:
+        with open('HTML/crowling/2021000095_0110100.html', encoding='utf-8') as f:
             self.indexPage.soup = BeautifulSoup(f, 'html.parser')
 
-        with open('HTML/score.html', encoding='utf-8') as f:
+        with open('HTML/crowling/2021000095_score.html', encoding='utf-8') as f:
             self.indexPageLast.soup = BeautifulSoup(f, 'html.parser')
 
     def test_index_page(self):
@@ -62,9 +62,10 @@ class TestSchedulePage(unittest.TestCase):
         self.schedulePage = crawling.SchedulePage(schedule_url)
         self.scheduleNotGamePage = crawling.SchedulePage(schedule_url)
 
-        with open('HTML/schedule.html', encoding='utf-8') as f:
+        with open('HTML/crowling/schedule_2021-03-26.html', encoding='utf-8') as f:
             self.schedulePage.soup = BeautifulSoup(f, 'html.parser')
-        with open('HTML/schedule_nothing_game.html', encoding='utf-8') as f:
+
+        with open('HTML/crowling/schedule_2021-03-25.html', encoding='utf-8') as f:
             self.scheduleNotGamePage.soup = BeautifulSoup(f, 'html.parser')
 
     def test_schedule_page(self):
