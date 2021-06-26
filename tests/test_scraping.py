@@ -29,14 +29,10 @@ class TestIndexPageScraper(unittest.TestCase):
         self.secondPage.take_result_at_bat()
 
     def test_index_page_scraper(self):
-        self.assertEqual(self.foulPage.take_ball_data_list(),
-                         [(1, 18, 'ストレート', 141, 'ボール', 0, 0, 22, 129),
-                          (2, 19, 'フォーク', 134, 'ボール[ワンバウンド]', 0, 1, 172, 94),
-                          (3, 20, 'ストレート', 142, 'ファウル', 0, 2, 104, 104),
-                          (4, 21, 'ストレート', 142, '見逃し', 1, 2, 67, 90),
-                          (5, 22, 'ストレート', 145, 'ファウル', 2, 2, 120, 33),
-                          (6, 23, 'フォーク', 135, 'ボール', 2, 2, 171, 119),
-                          (7, 24, 'チェンジアップ', 125, '四球[ワンバウンド]', 2, 3, 172, 20)])
+        self.assertEqual(self.foulPage.take_ball_data_list()[0],
+                         {'pitch_number_in_at_bat': 1, 'pitch_number_in_game': 18, 'type_of_pitch': 'ストレート',
+                          'pitch_speed': 141, 'pitch_result_text': 'ボール', 'strike_count': 0, 'ball_count': 0,
+                          'top': 22, 'left': 129})
 
         self.assertTrue(self.outPage.judge_out())
         self.assertFalse(self.notOutPage.judge_out())
@@ -71,7 +67,10 @@ class TestIndexPageScraper(unittest.TestCase):
 class TestPlayerPageScraper(unittest.TestCase):
     def setUp(self) -> None:
         matsuzaka_path = './HTML/scraping/player_11715.html'
+        mehia_path = './HTML/scraping/player_1400010.html'
+
         self.matsuzakaPage = scraping.PlayerPageScraper(matsuzaka_path)
+        self.mehiaPage = scraping.PlayerPageScraper(mehia_path)
 
     def test_player_page_scraper(self):
         self.assertEqual(self.matsuzakaPage.take_player_profile(),
@@ -79,6 +78,11 @@ class TestPlayerPageScraper(unittest.TestCase):
                           'position': '投手', 'date_of_birth': '1980-9-13', 'height': 182,
                           'weight': 92, 'throw_arm': '右', 'batting_arm': '右', 'draft_year': 1998,
                           'draft_rank': '1位', 'total_year': 15})
+        self.assertEqual(self.mehiaPage.take_player_profile(),
+                         {'player_name': 'メヒア', 'team_name': '西武', 'uniform_number': 99,
+                          'position': '内野手', 'date_of_birth': '1985-12-2', 'height': 198,
+                          'weight': 118, 'throw_arm': '右', 'batting_arm': '右', 'draft_year': None,
+                          'draft_rank': None, 'total_year': 8})
 
 
 class TestStatsPageScraper(unittest.TestCase):
@@ -88,7 +92,7 @@ class TestStatsPageScraper(unittest.TestCase):
         self.statsPage = scraping.StatsPageScraper(stats_path)
 
     def test_stats_page_scraper(self):
-        self.assertEqual(self.statsPage.take_date(), ('2021-3-26', '金'))
+        self.assertEqual(self.statsPage.take_date(), ('2021-03-26', '金'))
 
         self.assertEqual(self.statsPage.take_stadium(), '東京ドーム')
 
