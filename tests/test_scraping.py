@@ -89,6 +89,9 @@ class TestStatsPageScraper(unittest.TestCase):
 
     def test_stats_page_scraper(self):
         self.assertEqual(self.statsPage.take_date(), ('2021-3-26', '金'))
+
+        self.assertEqual(self.statsPage.take_stadium(), '東京ドーム')
+
         self.assertEqual(self.statsPage.take_point_board(),
                          ({1: 0, 2: 2, 3: 1, 4: 0, 5: 0, 6: 0, 7: 2, 8: 0, 9: 2, 'total': 7, 'hits': 12, 'miss': 1},
                           {1: 3, 2: 0, 3: 3, 4: 0, 5: 0, 6: 0, 7: 0, 8: 1, 9: 1, 'total': 8, 'hits': 9, 'miss': 1}))
