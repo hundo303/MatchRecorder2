@@ -52,9 +52,9 @@ class IndexPageScraper(PageScraper):
 
             pitch_speed_str: str = td_list[3].get_text()
             if pitch_speed_str == '-':
-                pitch_speed: Union[int, None] = None
+                speed: Union[int, None] = None
             else:
-                pitch_speed: Union[int, None] = int(pitch_speed_str.replace('km/h', ''))
+                speed: Union[int, None] = int(pitch_speed_str.replace('km/h', ''))
 
             pitch_result_text: str = re.sub(r'\s', '', td_list[4].get_text())
 
@@ -64,15 +64,15 @@ class IndexPageScraper(PageScraper):
             left_text = re.search(r'left:-?\d+', style_text).group()
             left: int = int(left_text.replace('left:', ''))
 
-            ball_data_list.append((pitch_number_in_at_bat,
-                                   pitch_number_in_game,
-                                   type_of_pitch,
-                                   pitch_speed,
-                                   pitch_result_text,
-                                   strike_count,
-                                   ball_count,
-                                   top,
-                                   left))
+            ball_data_list.append({'pitch_number_in_at_bat': pitch_number_in_at_bat,
+                                   'pitch_number_in_game': pitch_number_in_game,
+                                   'type_of_pitch': type_of_pitch,
+                                   'speed': speed,
+                                   'pitch_result_text': pitch_result_text,
+                                   'strike_count': strike_count,
+                                   'ball_count': ball_count,
+                                   'top': top,
+                                   'left': left})
 
             strike_count, ball_count = take_count()
 
@@ -80,6 +80,7 @@ class IndexPageScraper(PageScraper):
         return self.pitch_data_dict['ball_data_list']
 
     def judge_out(self) -> bool:
+        self.pitch_data_dict['out'] = False
         tr_list = self.soup.select('#pitchesDetail > section:nth-child(2) > table:nth-child(3) > tbody > tr')
 
         if not tr_list:
@@ -99,7 +100,8 @@ class IndexPageScraper(PageScraper):
             tr_nm_box = div.select_one('table > tbody > tr > '
                                        'td:nth-child(2) > table > '
                                        'tbody > tr.nm_box')
-
+            if tr_nm_box.select_one('td.nm > a') is None:
+                return None, None
             id_url = tr_nm_box.select_one('td.nm > a').get('href')
             player_id = int(id_url.split('/')[3])
 
@@ -135,7 +137,8 @@ class IndexPageScraper(PageScraper):
                                      'table > tbody > tr:nth-child(2) > td > span')
 
         plate_appearances = len(span_list) + 1
-        return plate_appearances
+        self.pitch_data_dict['num_at_bat'] = plate_appearances
+        return self.pitch_data_dict['num_at_bat']
 
     def take_match_batter_number(self) -> int:
         pitcher_side = 'L' if self.top_or_bottom == 1 else 'R'
@@ -153,7 +156,8 @@ class IndexPageScraper(PageScraper):
 
     def take_defense(self) -> Tuple[str, str, str, str, str, str, str, str]:
         defense_dic = {'捕': '不明', '一': '不明', '二': '不明', '三': '不明', '遊': '不明',
-                       '左': '不明', '中': '不明', '右': '不明', '指': '不明', '投': '不明'}
+                       '左': '不明', '中': '不明', '右': '不明', '指': '不明', '投': '不明',
+                       '打': '不明', '走': '不明'}
 
         pitcher_side = 'L' if self.top_or_bottom == 1 else 'R'
         defense_side = 'h' if self.top_or_bottom == 1 else 'a'
@@ -245,25 +249,68 @@ class IndexPageScraper(PageScraper):
         elif self.top_or_bottom == 2:
             attack_team, defense_team = second_team, first_team
 
-        return attack_team, defense_team
+        self.pitch_data_dict['attack_team'] = attack_team
+        self.pitch_data_dict['defense_team'] = defense_team
+        return self.pitch_data_dict['attack_team'], self.pitch_data_dict['defense_team']
 
     def take_rbi(self) -> int:
         match = re.search(r'＋\d点', self.pitch_data_dict['result_big'])
         if match:
             rbi_str = re.sub(r'\D', '', match.group())
             rbi = int(rbi_str)
+            self.pitch_data_dict['rbi'] = rbi
             return rbi
         else:
+            self.pitch_data_dict['rbi'] = 0
             return 0
 
     def judge_non_butter(self) -> bool:
         tag = self.soup.select_one('#batt > tbody > tr > td:nth-child(2) > table > tbody >'
                                    ' tr.nm_box > td.nm')
+
         return tag is None
+
+    def take_intentional_walk(self) -> bool:
+        intentional_walk = '申告敬遠' in self.pitch_data_dict['result_big']
+        self.pitch_data_dict['intentional_walk'] = intentional_walk
+        return self.pitch_data_dict['intentional_walk']
+
+    def judge_steal(self) -> Tuple[str, bool]:
+        write_steal, steal_non_pitch = None, None
+
+        for steal in ('盗塁成功', '盗塁失敗'):
+            if steal in self.pitch_data_dict['result_small'] and not '盗塁成功率' in self.pitch_data_dict['result_small']:
+                write_steal = steal
+                steal_non_pitch = False
+                if self.pitch_data_dict['ball_data_list'] == [] or not steal in \
+                                                                       self.pitch_data_dict['ball_data_list'][-1][
+                                                                           'pitch_result_text']:
+                    steal_non_pitch = True
+
+        self.pitch_data_dict['write_steal'] = write_steal
+        self.pitch_data_dict['steal_non_pitch'] = steal_non_pitch
+
+        return self.pitch_data_dict['write_steal'], self.pitch_data_dict['steal_non_pitch']
+
+    def get_pitch_data_dict(self) -> dict:
+        self.take_ball_data_list()
+        self.judge_out()
+        self.take_match_player_data()
+        self.take_num_at_bat()
+        self.take_match_batter_number()
+        self.take_defense()
+        self.take_result_at_bat()
+        self.take_runner()
+        self.take_match_team()
+        self.take_rbi()
+        self.take_intentional_walk()
+        self.judge_steal()
+
+        return self.pitch_data_dict
 
 
 class PlayerPageScraper(PageScraper):
-    def take_player_profile(self):
+    def take_player_profile(self) -> dict:
         player_name = self.soup.select_one('#contentMain > div > div.bb-main > '
                                            'div.bb-modCommon01 > div > div > div >'
                                            ' ruby > h1').get_text().replace(' ', '')
@@ -277,9 +324,9 @@ class PlayerPageScraper(PageScraper):
                                              'section:nth-child(3) > header').get('class')[2].split('--')[-1]
         team_name = team_name_dict[team_num]
 
-        uniform_number = int(self.soup.select_one('#contentMain > div > div.bb-main > '
-                                                  'div.bb-modCommon01 > div > div > div > '
-                                                  'div > p.bb-profile__number').get_text())
+        uniform_number = self.soup.select_one('#contentMain > div > div.bb-main > '
+                                              'div.bb-modCommon01 > div > div > div > '
+                                              'div > p.bb-profile__number').get_text()
         position = self.soup.select_one('#contentMain > div > div.bb-main > '
                                         'div.bb-modCommon01 > div > div > div > div > '
                                         'p.bb-profile__position').get_text()
@@ -308,19 +355,27 @@ class PlayerPageScraper(PageScraper):
         date_split_list = re.findall(r'\d+', date_of_birth_tag)
         date_of_birth = f'{date_split_list[0]}-{date_split_list[1]}-{date_split_list[2]}'
 
+        title = self.soup.select_one('#contentMain > div > div.bb-main > div.bb-modCommon01 > '
+                                     'div > div > div.bb-profile__data > dl:nth-child(9) > dt').get_text()
+
         draft_tag = self.soup.select_one('#contentMain > div > div.bb-main > '
                                          'div.bb-modCommon01 > div > div > '
                                          'div.bb-profile__data > dl:nth-child(9) > dd').get_text()
-        if draft_tag == '-':
+        total_year_tag = self.soup.select_one('#contentMain > div > div.bb-main > '
+                                              'div.bb-modCommon01 > div > div > '
+                                              'div.bb-profile__data > dl:nth-child(10) > dd').get_text()
+
+        if title == 'プロ通算年':
             draft_year = None
             draft_rank = None
+            total_year_tag = self.soup.select_one('#contentMain > div > div.bb-main > '
+                                                  'div.bb-modCommon01 > div > div > '
+                                                  'div.bb-profile__data > dl:nth-child(9) > dd').get_text()
+
         else:
             draft_year = int(re.search(r'\d{4}', draft_tag).group())
             draft_rank = draft_tag[5:].replace('（', '').replace('）', '')
 
-        total_year_tag = self.soup.select_one('#contentMain > div > div.bb-main > '
-                                              'div.bb-modCommon01 > div > div > '
-                                              'div.bb-profile__data > dl:nth-child(10) > dd').get_text()
         total_year = int(re.search(r'\d+', total_year_tag).group())
 
         return_dict: dict = {'player_name': player_name, 'team_name': team_name, 'uniform_number': uniform_number,
@@ -333,23 +388,25 @@ class PlayerPageScraper(PageScraper):
 class StatsPageScraper(PageScraper):
     def take_date(self) -> Tuple[str, str]:
         p = self.soup.select_one('#contentMain > div > div.bb-main > div.bb-modCommon02 > p.bb-gameDescription')
-        game_month = int(re.search(r'\d{1,2}月', str(p)).group()[:-1])
-        game_day = int(re.search(r'\d{1,2}日', str(p)).group()[:-1])
+        game_month = re.search(r'\d{1,2}月', str(p)).group()[:-1]
+        game_day = re.search(r'\d{1,2}日', str(p)).group()[:-1]
         day_week = re.search(r'（[日月火水木金土]）', str(p)).group().replace('（', '').replace('）', '')
 
         year = int(re.search(r'\d{4}', self.html_path).group())
         # self.pitch_data_dict['date'] = f'{year}-{game_month}-{game_day}'
         # self.pitch_data_dict['day_week'] = day_week
         # return self.pitch_data_dict['date'], self.pitch_data_dict['day_week']
-        return f'{year}-{game_month}-{game_day}', day_week
+        return f'{year}-{game_month.zfill(2)}-{game_day.zfill(2)}', day_week
 
     def take_stadium(self) -> str:
         p = self.soup.select_one('#contentMain > div > div.bb-main > div.bb-modCommon02 > p.bb-gameDescription')
         return p.get_text().split()[2]
 
     def take_point_board(self) -> Tuple[dict, dict]:
-        first_point_dict: dict = {}
-        second_point_dict: dict = {}
+        first_point_dict: dict = {1: None, 2: None, 3: None, 4: None, 5: None, 6: None, 7: None,
+                                  8: None, 9: None, 10: None, 11: None, 12: None, 'hits': 0, 'miss': 0}
+        second_point_dict: dict = {1: None, 2: None, 3: None, 4: None, 5: None, 6: None, 7: None,
+                                   8: None, 9: None, 10: None, 11: None, 12: None, 'hits': 0, 'miss': 0}
 
         first_point_bord = self.soup.select('#ing_brd > tbody > tr:nth-child(1)  .bb-gameScoreTable__data')
         second_point_bord = self.soup.select('#ing_brd > tbody > tr:nth-child(2) .bb-gameScoreTable__data')
@@ -360,18 +417,19 @@ class StatsPageScraper(PageScraper):
                 i += 1
                 continue
             first_point_dict[i] = int(first_point.select_one('a').get_text().replace('X', ''))
-            second_point_dict[i] = int(second_point.select_one('a').get_text().replace('X', ''))
+            if not second_point.select_one('a') is None:
+                second_point_dict[i] = int(second_point.select_one('a').get_text().replace('X', ''))
             i += 1
 
-        first_point_bord = self.soup.select('#ing_brd > tbody > tr:nth-child(1)  .bb-gameScoreTable__total')
-        second_point_bord = self.soup.select('#ing_brd > tbody > tr:nth-child(2) .bb-gameScoreTable__total')
+        first_total_bord = self.soup.select('#ing_brd > tbody > tr:nth-child(1)  .bb-gameScoreTable__total')
+        second_total_bord = self.soup.select('#ing_brd > tbody > tr:nth-child(2) .bb-gameScoreTable__total')
 
-        first_point_dict['total'] = int(first_point_bord[0].get_text())
-        first_point_dict['hits'] = int(first_point_bord[1].get_text())
-        first_point_dict['miss'] = int(first_point_bord[2].get_text())
-        second_point_dict['total'] = int(second_point_bord[0].get_text())
-        second_point_dict['hits'] = int(second_point_bord[1].get_text())
-        second_point_dict['miss'] = int(second_point_bord[2].get_text())
+        first_point_dict['total'] = int(first_total_bord[0].get_text())
+        first_point_dict['hits'] = int(first_total_bord[1].get_text())
+        first_point_dict['miss'] = int(first_total_bord[2].get_text())
+        second_point_dict['total'] = int(second_total_bord[0].get_text())
+        second_point_dict['hits'] = int(second_total_bord[1].get_text())
+        second_point_dict['miss'] = int(second_total_bord[2].get_text())
 
         return first_point_dict, second_point_dict
 
@@ -379,14 +437,16 @@ class StatsPageScraper(PageScraper):
         batting_stats_list: list = []
         pitching_stats_list: list = []
         batter_tr_list_first = self.soup.select('.bb-blowResultsTable > table > tbody > .bb-statsTable__row')
-        batter_tr_list_second = self.soup.select('bb-blowResultsTable:nth-child(2) > table > tbody > .bb-statsTable__row')
+        batter_tr_list_second = self.soup.select(
+            'bb-blowResultsTable:nth-child(2) > table > tbody > .bb-statsTable__row')
 
         for batter_tr in batter_tr_list_first + batter_tr_list_second:
             batter_stats_dict: dict = {}
             batter_td_list = batter_tr.select('td')
 
             batter_stats_dict['player_id'] = batter_td_list[1].select_one('a').get('href').split('/')[3]
-            batter_stats_dict['avg'] = float(batter_td_list[2].get_text()) if batter_td_list[2].get_text() != '-' else None
+            batter_stats_dict['avg'] = float(batter_td_list[2].get_text()) if batter_td_list[
+                                                                                  2].get_text() != '-' else None
             batter_stats_dict['times_at_bat'] = int(batter_td_list[3].get_text())
             batter_stats_dict['run'] = int(batter_td_list[4].get_text())
             batter_stats_dict['hits'] = int(batter_td_list[5].get_text())
@@ -401,14 +461,17 @@ class StatsPageScraper(PageScraper):
 
             batting_stats_list.append(batter_stats_dict)
 
-        pitcher_tr_list_first = self.soup.select('#gm_stats > section:nth-child(2) > section:nth-child(2) > table > tbody > tr')
-        pitcher_tr_list_second = self.soup.select('#gm_stats > section:nth-child(2) > section:nth-child(3) > table > tbody > tr')
+        pitcher_tr_list_first = self.soup.select(
+            '#gm_stats > section:nth-child(2) > section:nth-child(2) > table > tbody > tr')
+        pitcher_tr_list_second = self.soup.select(
+            '#gm_stats > section:nth-child(2) > section:nth-child(3) > table > tbody > tr')
 
         for pitcher_tr in pitcher_tr_list_first + pitcher_tr_list_second:
             pitcher_stats_dict: dict = {}
             pitcher_td_list = pitcher_tr.select('td')
 
             td_str = pitcher_td_list[2].select_one('p')
+            pitcher_stats_dict['player_id'] = pitcher_td_list[1].select_one('a').get('href').split('/')[3]
             pitcher_stats_dict['era'] = float(td_str.get_text()) if td_str.get_text() != '-' else None
             pitcher_stats_dict['inning'] = float(pitcher_td_list[3].get_text())
             pitcher_stats_dict['pitch_num'] = int(pitcher_td_list[4].get_text())
@@ -428,5 +491,11 @@ class StatsPageScraper(PageScraper):
 
 
 if __name__ == '__main__':
-    statsPage = StatsPageScraper('./HTML/2021/stats/2021000095.html')
-    print(statsPage.take_stadium())
+    # indexPage = IndexPageScraper('./HTML/2021/index/2021000095/0820500.html')
+    # print(indexPage.get_pitch_data_dict())
+
+    # playerPage = PlayerPageScraper('./HTML/player/1400010.html')
+    # print(playerPage.take_player_profile())
+
+    statsPage = StatsPageScraper('./HTML/2021/stats/2021000101.html')
+    print(statsPage.take_point_board())
