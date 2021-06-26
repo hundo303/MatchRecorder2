@@ -343,6 +343,10 @@ class StatsPageScraper(PageScraper):
         # return self.pitch_data_dict['date'], self.pitch_data_dict['day_week']
         return f'{year}-{game_month}-{game_day}', day_week
 
+    def take_stadium(self) -> str:
+        p = self.soup.select_one('#contentMain > div > div.bb-main > div.bb-modCommon02 > p.bb-gameDescription')
+        return p.get_text().split()[2]
+
     def take_point_board(self) -> Tuple[dict, dict]:
         first_point_dict: dict = {}
         second_point_dict: dict = {}
@@ -425,4 +429,4 @@ class StatsPageScraper(PageScraper):
 
 if __name__ == '__main__':
     statsPage = StatsPageScraper('./HTML/2021/stats/2021000095.html')
-    print(statsPage.take_player_stats()[1][6])
+    print(statsPage.take_stadium())
