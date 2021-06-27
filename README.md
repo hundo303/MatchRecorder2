@@ -36,4 +36,4 @@ python3 fetch_player.py
 データの取得が途中で中断された場合、最後に取得したファイルもしくはディレクトリを削除することをおすすめします。また、DBへの書き込みが途中で中断された場合は、1度sqliteファイルを削除することをおすすめします。
 
 # Author
-[gmainl](sakaigen303@gmail.com)
+[Gmail](<mailto:sakaigen303@gmail.com>)
