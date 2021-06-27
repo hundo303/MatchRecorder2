@@ -495,3 +495,18 @@ class StatsPageScraper(PageScraper):
             pitching_stats_list.append(pitcher_stats_dict)
 
         return batting_stats_list, pitching_stats_list
+
+    def take_team_name(self) -> Tuple[str, str]:
+        first_team = self.soup.select_one('#ing_brd > tbody > tr:nth-child(1) >'
+                                          ' td.bb-gameScoreTable__data.bb-gameScoreTable__data--team >'
+                                          ' a').get_text()
+        second_team = self.soup.select_one('#ing_brd > tbody > tr:nth-child(2) >'
+                                           ' td.bb-gameScoreTable__data.bb-gameScoreTable__data--team >'
+                                           ' a').get_text()
+        return first_team, second_team
+
+
+if __name__ == '__main__':
+    path = './HTML/2021/stats/2021000095.html'
+    statPage = StatsPageScraper(path)
+    print(statPage.take_team_name())

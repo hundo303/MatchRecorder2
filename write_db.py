@@ -84,8 +84,8 @@ class DbOperator:
                   'date DATE NOT NULL, '
                   'day_week TEXT NOT NULL, '
                   'studiam TEXT NOT NULL, '
-                  'first_team TEXT NOT NULL,'
-                  'second_team TEXT NOT NULL'
+                  'first_team TEXT NOT NULL, '
+                  'second_team TEXT NOT NULL, '
                   'first_hits INTEGER NOT NULL, '
                   'second_hits INTEGER NOT NULL, '
                   'first_miss INTEGER NOT NULL, '
@@ -205,7 +205,7 @@ class GameDbOperator(DbOperator):
             'Values (?, ?, ?, ?, ?, ?, ?, ?)', insert_data)
         self.cnn.commit()
 
-    def write_game_data(self, insert_data: Tuple[str, str, str, int, int, int, int, int, int, int, int, int,
+    def write_game_data(self, insert_data: Tuple[str, str, str, str, str, int, int, int, int, int, int, int, int, int,
                                                  int, int, int, int, int, int, int, int, int, int, int, int,
                                                  int, int, int, int, int, int, int, int, int]):
         cur = self.cnn.cursor()
@@ -225,8 +225,7 @@ class GameDbOperator(DbOperator):
             'sacrifice, steal, miss, hr) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', insert_data_list)
         self.cnn.commit()
 
-    def write_pitch_stats(self, insert_data_list: List[
-        Tuple[int, int, int, float, int, int, int, int, int, int, int, int, int, int]]):
+    def write_pitch_stats(self, insert_data_list: List[Tuple[int, int, int, float, int, int, int, int, int, int, int, int, int, int]]):
         cur = self.cnn.cursor()
         cur.executemany(
             'INSERT INTO pitch_stats (player_id, game_id, era, inning, pitch_num, batter_match_num, hits, hr, k,'
@@ -287,9 +286,12 @@ class GameDbWriter:
                 start_num = len(save_pitch_data_list)
 
     def write_stats_file(self):
+        print(f'write: {self.stats_file}')
+
         statsPage = sp.StatsPageScraper(self.stats_file)
         game_date, day_week = statsPage.take_date()
         game_stadium = statsPage.take_stadium()
+        first_team, second_team = statsPage.take_team_name()
         point_board = statsPage.take_point_board()
         fb: dict = point_board[0]  # first point board
         sb: dict = point_board[1]  # second point board
@@ -297,7 +299,7 @@ class GameDbWriter:
         batting_stats_list = player_stats[0]
         pitching_stats_list = player_stats[1]
 
-        save_game_data = (game_date, day_week, game_stadium, fb['hits'], sb['hits'], fb['miss'], sb['miss'],
+        save_game_data = (game_date, day_week, game_stadium, first_team, second_team, fb['hits'], sb['hits'], fb['miss'], sb['miss'],
                           fb[1], fb[2], fb[3], fb[4], fb[5], fb[6], fb[7], fb[8], fb[9], fb[10], fb[11], fb[12],
                           fb['total'],
                           sb[1], sb[2], sb[3], sb[4], sb[5], sb[6], sb[7], sb[8], sb[9], sb[10], sb[11], sb[12],
@@ -354,3 +356,6 @@ def write_db(db_name: str, year: int):
         game_id += 1
 
     gameDbOperator.close()
+
+if __name__ == '__main__':
+    write_db('hoge', 2021)

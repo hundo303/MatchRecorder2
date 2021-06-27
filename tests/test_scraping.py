@@ -31,7 +31,7 @@ class TestIndexPageScraper(unittest.TestCase):
     def test_index_page_scraper(self):
         self.assertEqual(self.foulPage.take_ball_data_list()[0],
                          {'pitch_number_in_at_bat': 1, 'pitch_number_in_game': 18, 'type_of_pitch': 'ストレート',
-                          'pitch_speed': 141, 'pitch_result_text': 'ボール', 'strike_count': 0, 'ball_count': 0,
+                          'speed': 141, 'pitch_result_text': 'ボール', 'strike_count': 0, 'ball_count': 0,
                           'top': 22, 'left': 129})
 
         self.assertTrue(self.outPage.judge_out())
@@ -116,6 +116,8 @@ class TestStatsPageScraper(unittest.TestCase):
         self.assertEqual(self.statsPage.take_player_stats()[1][6],
                          {'era': None, 'inning': 0.0, 'pitch_num': 3, 'batter_match_num': 1,
                           'hits': 1, 'hr': 1, 'k': 0, 'walks': 0, 'hit_by_pitch': 0, 'balk': 0, 'run': 1, 'er': 1})
+
+        self.assertEqual(self.statsPage.take_team_name(), ('DeNA', '巨人'))
 
 
 if __name__ == '__main__':
