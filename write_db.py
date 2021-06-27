@@ -84,6 +84,8 @@ class DbOperator:
                   'date DATE NOT NULL, '
                   'day_week TEXT NOT NULL, '
                   'studiam TEXT NOT NULL, '
+                  'first_team TEXT NOT NULL,'
+                  'second_team TEXT NOT NULL'
                   'first_hits INTEGER NOT NULL, '
                   'second_hits INTEGER NOT NULL, '
                   'first_miss INTEGER NOT NULL, '
@@ -153,6 +155,8 @@ class DbOperator:
 
         self.cnn.commit()
 
+
+class GameDbOperator(DbOperator):
     def close(self):
         self.cnn.close()
 
@@ -205,12 +209,13 @@ class DbOperator:
                                                  int, int, int, int, int, int, int, int, int, int, int, int,
                                                  int, int, int, int, int, int, int, int, int]):
         cur = self.cnn.cursor()
-        cur.execute('INSERT INTO game_data (date, day_week, studiam, first_hits, second_hits, first_miss, second_miss,'
+        cur.execute('INSERT INTO game_data (date, day_week, studiam, first_team, second_team, first_hits, second_hits, first_miss, second_miss,'
                     'first_point_1, first_point_2, first_point_3, first_point_4, first_point_5, first_point_6,'
                     'first_point_7, first_point_8, first_point_9, first_point_10, first_point_11, first_point_12,'
                     'first_total, second_point_1, second_point_2, second_point_3, second_point_4, second_point_5,'
                     'second_point_6, second_point_7, second_point_8, second_point_9, second_point_10, second_point_11,'
-                    'second_point_12, second_total) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', insert_data)
+                    'second_point_12, second_total) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
+                    insert_data)
         self.cnn.commit()
 
     def write_batting_stats(self, insert_data_list: List[Tuple[int, int, float, int, int, int, int, int, int, int, int, int, int, int]]):
@@ -220,7 +225,8 @@ class DbOperator:
             'sacrifice, steal, miss, hr) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', insert_data_list)
         self.cnn.commit()
 
-    def write_pitch_stats(self, insert_data_list: List[Tuple[int, int, int, float, int, int, int, int, int, int, int, int, int, int]]):
+    def write_pitch_stats(self, insert_data_list: List[
+        Tuple[int, int, int, float, int, int, int, int, int, int, int, int, int, int]]):
         cur = self.cnn.cursor()
         cur.executemany(
             'INSERT INTO pitch_stats (player_id, game_id, era, inning, pitch_num, batter_match_num, hits, hr, k,'
@@ -229,8 +235,8 @@ class DbOperator:
 
 
 class GameDbWriter:
-    def __init__(self, dbOperator: DbOperator, stats_file, index_dir, start_id_at_bat, game_id):
-        self.dbOperator: DbOperator = dbOperator
+    def __init__(self, gameDbOperator: GameDbOperator, stats_file, index_dir, start_id_at_bat, game_id):
+        self.gameDbOperator: GameDbOperator = gameDbOperator
         self.stats_file = stats_file
         self.index_dir = index_dir
         self.id_at_bat = start_id_at_bat
@@ -261,20 +267,23 @@ class GameDbWriter:
                                              pdd['c'], pdd['first'], pdd['second'], pdd['third'], pdd['ss'], pdd['lf'],
                                              pdd['cf'], pdd['rf'], pdd['first_runner'], pdd['second_runner'],
                                              pdd['third_runner'], ball_data['pitch_number_in_at_bat'],
-                                             ball_data['pitch_number_in_game'], ball_data['type_of_pitch'], ball_data['speed'],
-                                             ball_data['pitch_result_text'], ball_data['strike_count'], ball_data['ball_count'],
-                                             ball_data['top'], ball_data['left'], pdd['write_steal'], pdd['steal_non_pitch']))
+                                             ball_data['pitch_number_in_game'], ball_data['type_of_pitch'],
+                                             ball_data['speed'],
+                                             ball_data['pitch_result_text'], ball_data['strike_count'],
+                                             ball_data['ball_count'],
+                                             ball_data['top'], ball_data['left'], pdd['write_steal'],
+                                             pdd['steal_non_pitch']))
 
             if files[i][-9:-7] != files[i + 1][-9:7]:
                 inning = int(file[-12:-10])
                 save_bat_data = (self.game_id, inning, pdd['attack_team'], pdd['defense_team'], pdd['out'], pdd['rbi'],
                                  pdd['result_big'], pdd['result_small'])
-                self.dbOperator.write_data_at_bat(save_bat_data)
-                self.dbOperator.write_pitch_data(save_pitch_data_list)
+                self.gameDbOperator.write_data_at_bat(save_bat_data)
+                self.gameDbOperator.write_pitch_data(save_pitch_data_list)
                 self.id_at_bat += 1
                 start_num = 0
             else:
-                self.dbOperator.write_pitch_data(save_pitch_data_list[start_num:])
+                self.gameDbOperator.write_pitch_data(save_pitch_data_list[start_num:])
                 start_num = len(save_pitch_data_list)
 
     def write_stats_file(self):
@@ -307,9 +316,9 @@ class GameDbWriter:
                                           ps['batter_match_num'], ps['hits'], ps['hr'], ps['k'], ps['walks'],
                                           ps['hit_by_pitch'], ps['balk'], ps['run'], ps['er']))
 
-        self.dbOperator.write_game_data(save_game_data)
-        self.dbOperator.write_pitch_stats(save_pitch_stats_list)
-        self.dbOperator.write_batting_stats(save_batting_stats_list)
+        self.gameDbOperator.write_game_data(save_game_data)
+        self.gameDbOperator.write_pitch_stats(save_pitch_stats_list)
+        self.gameDbOperator.write_batting_stats(save_batting_stats_list)
 
 
 def write_db(db_name: str, year: int):
@@ -319,10 +328,10 @@ def write_db(db_name: str, year: int):
     stats_files = sorted(glob.glob(f'./HTML/{year}/stats/*.html'))
     index_dirs = sorted(glob.glob(f'./HTML/{year}/index/*'))
 
-    dbOperator = DbOperator(db_name)
-    id_at_bat = dbOperator.take_last_id_at_bat()
-    game_id = dbOperator.take_game_id()
-    last_update_date_str = dbOperator.take_last_update_date()
+    gameDbOperator = GameDbOperator(db_name)
+    id_at_bat = gameDbOperator.take_last_id_at_bat()
+    game_id = gameDbOperator.take_game_id()
+    last_update_date_str = gameDbOperator.take_last_update_date()
 
     for stats_file, index_dir in zip(stats_files, index_dirs):
         statsPage = sp.StatsPageScraper(stats_file)
@@ -337,11 +346,11 @@ def write_db(db_name: str, year: int):
         if stats_date <= last_update_date:
             continue
 
-        gameDbWriter = GameDbWriter(dbOperator, stats_file, index_dir, id_at_bat, game_id)
+        gameDbWriter = GameDbWriter(gameDbOperator, stats_file, index_dir, id_at_bat, game_id)
         gameDbWriter.write_index_dir()
         gameDbWriter.write_stats_file()
 
         id_at_bat = gameDbWriter.get_id_at_bat()
         game_id += 1
 
-    dbOperator.close()
+    gameDbOperator.close()
