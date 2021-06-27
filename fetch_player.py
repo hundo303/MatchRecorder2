@@ -253,3 +253,4 @@ def fetch_player_html():
 
 if __name__ == '__main__':
     fetch_player_html()
+    write_db()
