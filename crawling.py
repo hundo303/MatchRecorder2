@@ -123,52 +123,12 @@ class SchedulePage(Page):
             self.storage_html()
 
 
-class MemberPage(Page):
-    player_list: list = []
-
-    @classmethod
-    def append_player_url_list(cls, player_url: str) -> None:
-        cls.player_list.append(player_url)
-
-    @classmethod
-    def get_player_url_list(cls) -> list:
-        return cls.player_list
-
-    def fetch_players(self) -> list:
-        url_list: list = []
-        root_url = 'https://baseball.yahoo.co.jp'
-        tr_list = self.soup.select('#tm_plyr > tr')
-
-        for tr in tr_list:
-            td_list = tr.select('td')
-            player_profile_url = root_url + td_list[1].a.get('href')
-            url_list.append(player_profile_url)
-            self.append_player_url_list(player_profile_url)
-
-        return url_list
-
-
-class PlayerPage(Page):
-    def storage_html(self) -> None:
-        player_id = self.url.split('/')[5]
-        player_dir: str = f'./HTML/player'
-        html_name: str = f'{player_id}.html'
-
-        with open(player_dir + '/' + html_name, 'w', encoding='utf-8') as f:
-            f.write(self.res.text)
-            print(f'Done(player): {player_id}')
-
-
-def craw(fetch_player_flg=False, now_y: int = None, start_m: int = None, start_d: int = None, stop_m: int = None, stop_d: int = None) -> None:
+def craw(now_y: int = None, start_m: int = None, start_d: int = None, stop_m: int = None, stop_d: int = None) -> None:
     # 入力された日付に1つでもNoneがあればこちら側で決める
     if any(arg is None for arg in [now_y, start_m, start_d, stop_m, stop_d]):
         now_y, start_m, start_d, stop_m, stop_d = decision_date()
 
     make_dir_if_not_exists(now_y)
-
-    # playerの取得
-    if fetch_player_flg is True:
-        fetch_player_html()
 
     schedule_rul_list = make_schedule_url_list(now_y, start_m, start_d, stop_m, stop_d)
     for schedule_url in schedule_rul_list:
@@ -199,30 +159,6 @@ def craw(fetch_player_flg=False, now_y: int = None, start_m: int = None, start_d
 
                 os.mkdir(game_dir)
                 fetch_game_html(start_url, game_dir)
-
-
-def fetch_player_html():
-    team_number_list = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '11', '12', '376']
-    root_url = 'https://baseball.yahoo.co.jp/npb/teams'
-
-    for team_num in team_number_list:
-        exec(f'team_url_p = root_url + "/{team_num}/memberlist?kind=p"')
-        exec(f'team_url_b = root_url + "/{team_num}/memberlist?kind=b"')
-        exec(f'memberPage{team_num}p = MemberPage(team_url_p)')
-        exec(f'memberPage{team_num}b = MemberPage(team_url_b)')
-        exec(f'memberPage{team_num}p.send_request()')
-        exec(f'memberPage{team_num}b.send_request()')
-        exec(f'memberPage{team_num}p.fetch_players()')
-        exec(f'memberPage{team_num}b.fetch_players()')
-
-    memberPage = MemberPage('')
-    player_url_list = memberPage.get_player_url_list()
-
-    for player_url in player_url_list:
-        playerPage = PlayerPage(player_url)
-
-        playerPage.send_request()
-        playerPage.storage_html()
 
 
 # 良い感じに範囲決めてくれるやつ
@@ -335,4 +271,4 @@ def make_dir_if_not_exists(year: int):
 
 
 if __name__ == '__main__':
-    craw(fetch_player_flg=True)
+    craw()
