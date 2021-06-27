@@ -356,6 +356,3 @@ def write_db(db_name: str, year: int):
         game_id += 1
 
     gameDbOperator.close()
-
-if __name__ == '__main__':
-    write_db('hoge', 2021)

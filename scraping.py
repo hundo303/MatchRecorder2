@@ -504,9 +504,3 @@ class StatsPageScraper(PageScraper):
                                            ' td.bb-gameScoreTable__data.bb-gameScoreTable__data--team >'
                                            ' a').get_text()
         return first_team, second_team
-
-
-if __name__ == '__main__':
-    path = './HTML/2021/stats/2021000095.html'
-    statPage = StatsPageScraper(path)
-    print(statPage.take_team_name())
