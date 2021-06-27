@@ -411,15 +411,17 @@ class StatsPageScraper(PageScraper):
         first_point_bord = self.soup.select('#ing_brd > tbody > tr:nth-child(1)  .bb-gameScoreTable__data')
         second_point_bord = self.soup.select('#ing_brd > tbody > tr:nth-child(2) .bb-gameScoreTable__data')
 
-        i = 0
-        for first_point, second_point in zip(first_point_bord, second_point_bord):
+        for i, (first_point, second_point) in enumerate(zip(first_point_bord, second_point_bord)):
             if i == 0:
-                i += 1
                 continue
+
+            # 途中で中止になった場合
+            if first_point.select_one('a') is None:
+                break
+
             first_point_dict[i] = int(first_point.select_one('a').get_text().replace('X', ''))
             if not second_point.select_one('a') is None:
                 second_point_dict[i] = int(second_point.select_one('a').get_text().replace('X', ''))
-            i += 1
 
         first_total_bord = self.soup.select('#ing_brd > tbody > tr:nth-child(1)  .bb-gameScoreTable__total')
         second_total_bord = self.soup.select('#ing_brd > tbody > tr:nth-child(2) .bb-gameScoreTable__total')
@@ -470,6 +472,9 @@ class StatsPageScraper(PageScraper):
             pitcher_stats_dict: dict = {}
             pitcher_td_list = pitcher_tr.select('td')
 
+            if not pitcher_td_list[0].select_one('a') is None:
+                pitcher_td_list.insert(0, None)
+
             td_str = pitcher_td_list[2].select_one('p')
             pitcher_stats_dict['player_id'] = pitcher_td_list[1].select_one('a').get('href').split('/')[3]
             pitcher_stats_dict['era'] = float(td_str.get_text()) if td_str.get_text() != '-' else None
@@ -497,5 +502,5 @@ if __name__ == '__main__':
     # playerPage = PlayerPageScraper('./HTML/player/1400010.html')
     # print(playerPage.take_player_profile())
 
-    statsPage = StatsPageScraper('./HTML/2021/stats/2021000101.html')
-    print(statsPage.take_point_board())
+    statsPage = StatsPageScraper('./HTML/2021/stats/2021000145.html')
+    print(statsPage.take_player_stats())
