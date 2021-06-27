@@ -446,7 +446,6 @@ class StatsPageScraper(PageScraper):
             batter_stats_dict: dict = {}
             batter_td_list = batter_tr.select('td')
 
-            print(batter_td_list[1])
             if batter_td_list[1].select_one('a') is None:
                 continue
             batter_stats_dict['player_id'] = batter_td_list[1].select_one('a').get('href').split('/')[3]
@@ -496,14 +495,3 @@ class StatsPageScraper(PageScraper):
             pitching_stats_list.append(pitcher_stats_dict)
 
         return batting_stats_list, pitching_stats_list
-
-
-if __name__ == '__main__':
-    # indexPage = IndexPageScraper('./HTML/2021/index/2021000095/0820500.html')
-    # print(indexPage.get_pitch_data_dict())
-
-    # playerPage = PlayerPageScraper('./HTML/player/1400010.html')
-    # print(playerPage.take_player_profile())
-
-    statsPage = StatsPageScraper('./HTML/2021/stats/2021000344.html')
-    print(statsPage.take_player_stats())

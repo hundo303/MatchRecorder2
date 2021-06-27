@@ -244,7 +244,7 @@ class GameDbWriter:
         start_num = 0
 
         for i, file in enumerate(files):
-            print(file)
+            print(f'write: {file}')
             if file == files[-1]:
                 continue
 
@@ -345,7 +345,3 @@ def write_db(db_name: str, year: int):
         game_id += 1
 
     dbOperator.close()
-
-
-if __name__ == '__main__':
-    write_db('test', 2021)
