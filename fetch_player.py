@@ -45,7 +45,7 @@ class PlayerPage(crawling.Page):
 
 class PlayerDbWrite:
     def __init__(self, db_name: str):
-        self.db_path = f'./{db_name}.db'
+        self.db_path = f'./output_db/{db_name}.db'
         self.cnn = sqlite3.connect(self.db_path)
 
         self.make_db_table()
