@@ -9,7 +9,7 @@ import re
 
 class DbOperator:
     def __init__(self, db_name: str):
-        self.db_path = f'./{db_name}.db'
+        self.db_path = f'./output_db/{db_name}.db'
         self.cnn = sqlite3.connect(self.db_path)
 
         self.make_db_table()
@@ -179,13 +179,6 @@ class DbOperator:
         game_id = cur.fetchone()[0]
         return 0 if game_id is None else game_id
 
-    def take_player_id_list(self) -> List[Tuple[int]]:
-        c = self.cnn.cursor()
-        c.execute('select id from player')
-        player_list = c.fetchall()
-
-        return player_list
-
     def write_pitch_data(self, insert_data_list: List[
         Tuple[int, int, bool, int, bool, int, int, str, str, str, str, str, str, str, str,
               str, str, str, int, int, str, int, str, int, int, int, int, str, int]]):
@@ -206,13 +199,6 @@ class DbOperator:
         cur.execute(
             'INSERT INTO data_at_bat (game_id, inning, attack_team, defense_team, out, rbi, result_big, result_small) '
             'Values (?, ?, ?, ?, ?, ?, ?, ?)', insert_data)
-        self.cnn.commit()
-
-    def write_player(self, insert_data_list: List[Tuple[str, str, int, str, str, int, int, str, str, int, str, int]]):
-        cur = self.cnn.cursor()
-        cur.executemany(
-            'INSERT INTO player VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-            insert_data_list)
         self.cnn.commit()
 
     def write_game_data(self, insert_data: Tuple[str, str, str, int, int, int, int, int, int, int, int, int,
@@ -326,28 +312,10 @@ class GameDbWriter:
         self.dbOperator.write_batting_stats(save_batting_stats_list)
 
 
-def write_player(db_name: str):
-    dbOperator = DbOperator(db_name)
-    player_files = glob.glob('./HTML/player/*.html')
-    player_id_list = dbOperator.take_player_id_list()
+def write_db(db_name: str, year: int):
+    if not os.path.exists('./output_db'):
+        os.mkdir('./output_db')
 
-    save_data_list = []
-    for file in player_files:
-        playerPage = sp.PlayerPageScraper(file)
-        pdd = playerPage.take_player_profile()  # player_data_dict
-        player_id = int(re.sub('\D+', '', file))
-
-        if (player_id,) in player_id_list:
-            continue
-
-        save_data_list.append((player_id, pdd['player_name'], pdd['team_name'], pdd['uniform_number'], pdd['position'],
-                               pdd['date_of_birth'], pdd['height'], pdd['weight'], pdd['throw_arm'],
-                               pdd['batting_arm'], pdd['draft_year'], pdd['draft_rank'], pdd['total_year']))
-
-    dbOperator.write_player(save_data_list)
-
-
-def main(db_name: str, year: int):
     stats_files = sorted(glob.glob(f'./HTML/{year}/stats/*.html'))
     index_dirs = sorted(glob.glob(f'./HTML/{year}/index/*'))
 
@@ -380,15 +348,4 @@ def main(db_name: str, year: int):
 
 
 if __name__ == '__main__':
-    main('test', 2021)
-
-    '''
-    dbOperator_ = DbOperator('test')
-    id_at_bat_ = dbOperator_.take_last_id_at_bat()
-    game_id_ = dbOperator_.take_game_id()
-    stats_file_ = './HTML/2021/stats/2021000095.html'
-    index_dir_ = './HTML/2021/index/2021000095'
-
-    gameDbWriter_ = GameDbWriter(dbOperator_, stats_file_, index_dir_, id_at_bat_, game_id_)
-    gameDbWriter_.write_stats_file()
-    '''
+    write_db('test', 2021)
