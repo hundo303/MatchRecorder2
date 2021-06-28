@@ -28,6 +28,9 @@ python3 main.py
 python3 fetch_player.py
 ```
 
+# DB ER図
+![DB Image](https://github.com/hundo303/MatchRecorder2/blob/image/db.svg)
+
 # WARN
 試合データは保存済みのHTMLを二重で取得することはありませんが、選手データは更新されている可能性があるため何度でもリクエストを送る仕様となっています。
 サイト様に負担をかけないよう、必要な回数のみ実行するようお願いします。
