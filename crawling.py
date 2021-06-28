@@ -268,7 +268,3 @@ def make_dir_if_not_exists(year: int):
         os.mkdir(index_dir)
     if not os.path.exists(schedule_dir):
         os.mkdir(schedule_dir)
-
-
-if __name__ == '__main__':
-    craw()
