@@ -102,12 +102,18 @@ class SchedulePage(Page):
 
     def fetch_game_url_list(self) -> List[str]:
         game_url_list: list = []
+        above_list: list = []
+        under_list: list = []
 
+        above_list_name = self.soup.select_one('#gm_card > section:nth-child(1) > header > h1')
+        under_list_name = self.soup.select_one('#gm_card > section:nth-child(2) > header > h1')
 
-        central_list = self.soup.select('#gm_card > section:nth-child(1) > ul > li > a')
-        pacific_list = self.soup.select('#gm_card > section:nth-child(2) > ul > li > a')
+        if above_list_name == 'セ・リーグ' or above_list_name == 'パ・リーグ':
+            above_list = self.soup.select('#gm_card > section:nth-child(1) > ul > li > a')
+        if under_list_name == 'セ・リーグ' or under_list_name == 'パ・リーグ':
+            under_list = self.soup.select('#gm_card > section:nth-child(2) > ul > li > a')
 
-        for game in central_list + pacific_list:
+        for game in above_list + under_list:
             game_url_list.append(game.get('href'))
         return list(map(lambda url: url.replace('index', ''), game_url_list))
 
