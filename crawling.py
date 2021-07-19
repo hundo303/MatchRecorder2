@@ -92,7 +92,7 @@ class StatsPage(GamePage):
 
         with open(stats_dir + html_name, 'w', encoding='utf-8') as f:
             f.write(self.res.text)
-            print('Done(stast): ' + stats_dir + html_name)
+            print('Done(stats): ' + stats_dir + html_name)
 
 
 class SchedulePage(Page):
@@ -102,6 +102,7 @@ class SchedulePage(Page):
 
     def fetch_game_url_list(self) -> List[str]:
         game_url_list: list = []
+
 
         central_list = self.soup.select('#gm_card > section:nth-child(1) > ul > li > a')
         pacific_list = self.soup.select('#gm_card > section:nth-child(2) > ul > li > a')
