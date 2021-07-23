@@ -13,7 +13,6 @@
 ```bash
 apt install python3
 pip3 install beautifulsoup4
-pip3 install sqlite3
 ```
 
 # Usage
@@ -36,7 +35,10 @@ python3 fetch_player.py
 サイト様に負担をかけないよう、必要な回数のみ実行するようお願いします。
 
 # Note
-データの取得が途中で中断された場合、最後に取得したファイルもしくはディレクトリを削除することをおすすめします。また、DBへの書き込みが途中で中断された場合は、1度sqliteファイルを削除することをおすすめします。
+データの取得が途中で中断された場合、最後に取得したファイルもしくはディレクトリを削除することをおすすめします。また、DBへの書き込みが途中で中断された場合は、1度sqliteファイルを削除することをおすすめします。  
+また、requestsのSSL関連のエラーが出る場合は以下の記事を参考に、自己責任で対処をお願いします。  
+https://qiita.com/sidious/items/f9a6eaaf6b1786d6a92c
+
 
 # Author
 [Gmail](<mailto:sakaigen303@gmail.com>)
