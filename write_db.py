@@ -175,7 +175,7 @@ class GameDbOperator(DbOperator):
 
     def take_game_id(self) -> int:
         if not os.path.exists(self.db_path):
-            return 0
+            return 1
 
         cur = self.cnn.cursor()
         cur.execute('SELECT MAX(id) from game_data')
