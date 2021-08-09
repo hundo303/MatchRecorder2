@@ -108,9 +108,9 @@ class SchedulePage(Page):
         above_list_name = self.soup.select_one('#gm_card > section:nth-child(1) > header > h1')
         under_list_name = self.soup.select_one('#gm_card > section:nth-child(2) > header > h1')
 
-        if above_list_name == 'セ・リーグ' or above_list_name == 'パ・リーグ':
+        if above_list_name == 'セ・リーグ' or above_list_name == 'パ・リーグ' or above_list_name == 'セ・パ交流戦':
             above_list = self.soup.select('#gm_card > section:nth-child(1) > ul > li > a')
-        if under_list_name == 'セ・リーグ' or under_list_name == 'パ・リーグ':
+        if under_list_name == 'セ・リーグ' or under_list_name == 'パ・リーグ' or above_list_name == 'セ・パ交流戦':
             under_list = self.soup.select('#gm_card > section:nth-child(2) > ul > li > a')
 
         for game in above_list + under_list:
