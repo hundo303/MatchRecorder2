@@ -180,8 +180,8 @@ class GameDbOperator(DbOperator):
         cur = self.cnn.cursor()
         cur.execute('SELECT MAX(id) from game_data')
 
-        game_id = cur.fetchone()[0]
-        return 0 if game_id is None else game_id
+        last_game_id = cur.fetchone()[0]
+        return 1 if last_game_id is None else last_game_id + 1
 
     def write_pitch_data(self, insert_data_list: List[
         Tuple[int, int, bool, int, bool, int, int, str, str, str, str, str, str, str, str,
@@ -334,6 +334,8 @@ def write_db(db_name: str, year: int):
     id_at_bat = gameDbOperator.take_last_id_at_bat()
     game_id = gameDbOperator.take_game_id()
     last_update_date_str = gameDbOperator.take_last_update_date()
+
+    print(game_id)
 
     for stats_file, index_dir in zip(stats_files, index_dirs):
         statsPage = sp.StatsPageScraper(stats_file)
