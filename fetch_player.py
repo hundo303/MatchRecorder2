@@ -1,11 +1,10 @@
 import glob
 import re
 import scraping as sp
-import sqlite3
 from typing import List, Tuple
-from bs4 import BeautifulSoup
 import crawling
 import write_db as wd
+import datetime
 
 
 class MemberPage(crawling.Page):
@@ -61,7 +60,8 @@ class PlayerDbWrite(wd.DbOperator):
 
 
 def write_db():
-    db_name = 'test'
+    now_year = datetime.date.today().year
+    db_name = now_year
     playerDbWriter = PlayerDbWrite(db_name)
     player_files = glob.glob('./HTML/player/*.html')
     player_id_list = playerDbWriter.take_player_id_list()

@@ -165,7 +165,8 @@ class IndexPageScraper(PageScraper):
         div_pitcher = self.soup.select_one(f'#pitcher{pitcher_side} > div.card')
         team_number_str = div_pitcher.get('class')[1]
 
-        tr_list = self.soup.select(f'#gm_memh > table.bb-splitsTable.bb-splitsTable--team1 > tbody > tr')
+        tr_list = self.soup.select(f'#gm_mem{defense_side} > '
+                                   f'table.bb-splitsTable.bb-splitsTable--team{team_number_str} > tbody > tr')
 
         for tr in tr_list:
             td_list = tr.select('td')
