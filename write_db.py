@@ -171,7 +171,7 @@ class GameDbOperator(DbOperator):
         cur.execute('SELECT MAX(id) from data_at_bat')
         last_id_at_bat = cur.fetchone()[0]
 
-        return 0 if last_id_at_bat is None else last_id_at_bat
+        return 1 if last_id_at_bat is None else last_id_at_bat
 
     def take_game_id(self) -> int:
         if not os.path.exists(self.db_path):
