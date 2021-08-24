@@ -60,7 +60,10 @@ class DbOperator:
                   'out INTEGER NOT NULL, '
                   'rbi INTEGER NOT NULL, '
                   'result_big TEXT NOT NULL, '
-                  'result_small TEXT NOT NULL)')
+                  'result_small TEXT NOT NULL, '
+                  'finish_at_bat INTEGER NOT NULL, '
+                  'pitcher_id INTEGER NOT NULL, '
+                  'batter_id INTEGER NOT NULL)')
 
         # player
         c.execute('CREATE TABLE IF NOT EXISTS player( '
@@ -198,11 +201,12 @@ class GameDbOperator(DbOperator):
 
         self.cnn.commit()
 
-    def write_data_at_bat(self, insert_data: Tuple[int, int, str, str, int, int, str, str]):
+    def write_data_at_bat(self, insert_data: Tuple[int, int, str, str, bool, int, str, str, bool, int, int]):
         cur = self.cnn.cursor()
         cur.execute(
-            'INSERT INTO data_at_bat (game_id, inning, attack_team, defense_team, out, rbi, result_big, result_small) '
-            'Values (?, ?, ?, ?, ?, ?, ?, ?)', insert_data)
+            'INSERT INTO data_at_bat (game_id, inning, attack_team, defense_team, out, rbi, result_big, result_small, '
+            'finish_at_bat, pitcher_id, batter_id) '
+            'Values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', insert_data)
         self.cnn.commit()
 
     def write_game_data(self, insert_data: Tuple[str, str, str, str, str, int, int, int, int, int, int, int, int, int,
@@ -256,6 +260,13 @@ class GameDbWriter:
             indexPage = sp.IndexPageScraper(file)
             pdd = indexPage.get_pitch_data_dict()
 
+            if not files[i+1] == files[-1]:
+                next_index_page = sp.IndexPageScraper(files[i + 1])
+                next_pdd = next_index_page.get_pitch_data_dict()
+                finish_at_bat: bool = pdd['batter_id'] != next_pdd['batter_id']
+            else:
+                finish_at_bat = True
+
             if indexPage.judge_non_butter():
                 continue
 
@@ -276,7 +287,7 @@ class GameDbWriter:
             if files[i][-9:-7] != files[i + 1][-9:7]:
                 inning = int(file[-12:-10])
                 save_bat_data = (self.game_id, inning, pdd['attack_team'], pdd['defense_team'], pdd['out'], pdd['rbi'],
-                                 pdd['result_big'], pdd['result_small'])
+                                 pdd['result_big'], pdd['result_small'], finish_at_bat, pdd['pitcher_id'], pdd['batter_id'])
                 self.gameDbOperator.write_data_at_bat(save_bat_data)
                 self.gameDbOperator.write_pitch_data(save_pitch_data_list)
                 self.id_at_bat += 1
@@ -356,3 +367,7 @@ def write_db(db_name: str, year: int):
         game_id += 1
 
     gameDbOperator.close()
+
+
+if __name__ == '__main__':
+    write_db('new_table_test', 2021)
