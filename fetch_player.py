@@ -62,14 +62,14 @@ class PlayerDbWrite(wd.DbOperator):
 
 def write_db():
     db_name = 'test'
-    playerDbWriter = PlayerDbWrite(db_name)
+    player_db_writer = PlayerDbWrite(db_name)
     player_files = glob.glob('./HTML/player/*.html')
-    player_id_list = playerDbWriter.take_player_id_list()
+    player_id_list = player_db_writer.take_player_id_list()
 
     save_data_list = []
     for file in player_files:
-        playerPage = sp.PlayerPageScraper(file)
-        pdd = playerPage.take_player_profile()  # player_data_dict
+        player_page = sp.PlayerPageScraper(file)
+        pdd = player_page.take_player_profile()  # player_data_dict
         player_id = int(re.sub('\D+', '', file))
 
         if (player_id,) in player_id_list:
@@ -80,7 +80,7 @@ def write_db():
              pdd['date_of_birth'], pdd['height'], pdd['weight'], pdd['throw_arm'],
              pdd['batting_arm'], pdd['draft_year'], pdd['draft_rank'], pdd['total_year']))
 
-    playerDbWriter.write_player(save_data_list)
+    player_db_writer.write_player(save_data_list)
 
 
 def fetch_player_html():

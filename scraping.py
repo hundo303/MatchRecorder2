@@ -311,7 +311,7 @@ class IndexPageScraper(PageScraper):
 
 class PlayerPageScraper(PageScraper):
     def take_player_profile(self) -> dict:
-        player_name = self.soup.select_one('#contentMain > div > div.bb-main > '
+        player_name: str = self.soup.select_one('#contentMain > div > div.bb-main > '
                                            'div.bb-modCommon01 > div > div > div >'
                                            ' ruby > h1').get_text().replace(' ', '')
 
@@ -322,12 +322,12 @@ class PlayerPageScraper(PageScraper):
 
         team_num: str = self.soup.select_one('#contentMain > div > div.bb-main > '
                                              'section:nth-child(3) > header').get('class')[2].split('--')[-1]
-        team_name = team_name_dict[team_num]
+        team_name: str = team_name_dict[team_num]
 
-        uniform_number = self.soup.select_one('#contentMain > div > div.bb-main > '
+        uniform_number: str = self.soup.select_one('#contentMain > div > div.bb-main > '
                                               'div.bb-modCommon01 > div > div > div > '
                                               'div > p.bb-profile__number').get_text()
-        position = self.soup.select_one('#contentMain > div > div.bb-main > '
+        position: str = self.soup.select_one('#contentMain > div > div.bb-main > '
                                         'div.bb-modCommon01 > div > div > div > div > '
                                         'p.bb-profile__position').get_text()
 
