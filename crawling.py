@@ -10,7 +10,7 @@ from typing import Union, List, Tuple
 class Page:
     def __init__(self, url: str):
         self.url: str = url
-        self.soup: BeautifulSoup = BeautifulSoup
+        self.soup: BeautifulSoup = None
         self.res: requests.models.Response = requests.models.Response()
 
     def send_request(self) -> None:
