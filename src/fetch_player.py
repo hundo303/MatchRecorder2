@@ -1,10 +1,8 @@
 import glob
 import re
 import scraping as sp
-import sqlite3
 from typing import List, Tuple
-from bs4 import BeautifulSoup
-import crawling
+from src import crawling
 import write_db as wd
 
 

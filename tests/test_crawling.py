@@ -4,7 +4,7 @@ import os
 import sys
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
-import crawling
+from src import crawling
 
 
 class TestScorePage(unittest.TestCase):
