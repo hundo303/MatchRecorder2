@@ -335,8 +335,6 @@ def write_db(db_name: str, year: int):
     game_id = gameDbOperator.take_game_id()
     last_update_date_str = gameDbOperator.take_last_update_date()
 
-    print(game_id)
-
     for stats_file, index_dir in zip(stats_files, index_dirs):
         statsPage = sp.StatsPageScraper(stats_file)
         stats_date_str = statsPage.take_date()[0]
