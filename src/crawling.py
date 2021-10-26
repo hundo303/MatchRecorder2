@@ -105,8 +105,8 @@ class SchedulePage(Page):
         above_list: list = []
         under_list: list = []
 
-        above_list_name = self.soup.select_one('#gm_card > section:nth-child(1) > header > h1')
-        under_list_name = self.soup.select_one('#gm_card > section:nth-child(2) > header > h1')
+        above_list_name = self.soup.select_one('#gm_card > section:nth-child(1) > header > h1').text
+        under_list_name = self.soup.select_one('#gm_card > section:nth-child(2) > header > h1').text
 
         if above_list_name == 'セ・リーグ' or above_list_name == 'パ・リーグ' or above_list_name == 'セ・パ交流戦':
             above_list = self.soup.select('#gm_card > section:nth-child(1) > ul > li > a')
