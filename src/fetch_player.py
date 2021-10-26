@@ -34,7 +34,7 @@ class MemberPage(crawling.Page):
 class PlayerPage(crawling.Page):
     def storage_html(self) -> None:
         player_id = self.url.split('/')[5]
-        player_dir: str = f'./HTML/player'
+        player_dir: str = f'../HTML/player'
         html_name: str = f'{player_id}.html'
 
         with open(player_dir + '/' + html_name, 'w', encoding='utf-8') as f:
@@ -61,7 +61,7 @@ class PlayerDbWrite(wd.DbOperator):
 def write_db():
     db_name = 'test'
     player_db_writer = PlayerDbWrite(db_name)
-    player_files = glob.glob('./HTML/player/*.html')
+    player_files = glob.glob('../HTML/player/*.html')
     player_id_list = player_db_writer.take_player_id_list()
 
     save_data_list = []

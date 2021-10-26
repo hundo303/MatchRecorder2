@@ -34,7 +34,7 @@ class GamePage(Page):
 
 class ScorePage(GamePage):
     def make_game_dir_name(self) -> str:
-        return fr'./HTML/{self.year}/index/{self.game_num}'
+        return fr'../HTML/{self.year}/index/{self.game_num}'
 
     def judge_farm(self) -> bool:
         tag = self.soup.find('th', class_='bb-splitsTable__head bb-splitsTable__head--bench')
@@ -255,9 +255,9 @@ def fetch_game_html(url: str, game_dir: str):
 
 
 def make_dir_if_not_exists(year: int):
-    html_dir = './HTML'
-    player_dir = './HTML/player'
-    year_dir = f'./HTML/{year}'
+    html_dir = '../HTML'
+    player_dir = '../HTML/player'
+    year_dir = f'../HTML/{year}'
     stats_dir = year_dir + '/stats'
     index_dir = year_dir + '/index'
     schedule_dir = year_dir + '/schedule'

@@ -327,8 +327,8 @@ def write_db(db_name: str, year: int):
     if not os.path.exists('./output_db'):
         os.mkdir('./output_db')
 
-    stats_files = sorted(glob.glob(f'./HTML/{year}/stats/*.html'))
-    index_dirs = sorted(glob.glob(f'./HTML/{year}/index/*'))
+    stats_files = sorted(glob.glob(f'../HTML/{year}/stats/*.html'))
+    index_dirs = sorted(glob.glob(f'../HTML/{year}/index/*'))
 
     gameDbOperator = GameDbOperator(db_name)
     id_at_bat = gameDbOperator.take_last_id_at_bat()
