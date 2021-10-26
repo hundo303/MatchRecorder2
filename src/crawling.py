@@ -161,7 +161,6 @@ def craw(now_y: int = None, start_m: int = None, start_d: int = None, stop_m: in
             if scorePage.judge_no_game():
                 continue
             else:
-                statsPage.send_request()
                 statsPage.storage_html()
 
                 os.mkdir(game_dir)
