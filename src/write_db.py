@@ -4,7 +4,6 @@ import sqlite3
 import os
 from typing import Union, Tuple, List
 import datetime
-import re
 
 
 class DbOperator:
