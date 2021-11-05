@@ -4,17 +4,18 @@ from typing import List, Tuple, Union
 
 
 class PageScraper:
-    def __init__(self, html_path: str):
-        self.html_path = html_path
-
-        with open(html_path, encoding='utf-8') as f:
-            self.soup = BeautifulSoup(f, 'html.parser')
+    def __init__(self, html: Union[str, BeautifulSoup]):
+        if type(html) == str:
+            with open(html, encoding='utf-8') as f:
+                self.soup = BeautifulSoup(f, 'html.parser')
+        elif type(html) == BeautifulSoup:
+            self.soup = html
 
 
 class IndexPageScraper(PageScraper):
-    def __init__(self, html_path: str):
+    def __init__(self, html_path: str, index_id: str):
         super().__init__(html_path)
-        self.top_or_bottom = int(self.html_path[-10])
+        self.top_or_bottom = index_id[-5]
         self.pitch_data_dict: dict = {}
 
     #  1球ごとの投球内容は[打席での球数, 試合での球数, 球種, 球速, 結果, ストライクカウント, ボールカウント]
@@ -386,17 +387,18 @@ class PlayerPageScraper(PageScraper):
 
 
 class StatsPageScraper(PageScraper):
+    def __init__(self, html: Union[str, BeautifulSoup], year: int):
+        super().__init__(html)
+        self.year = year
+
     def take_date(self) -> Tuple[str, str]:
         p = self.soup.select_one('#contentMain > div > div.bb-main > div.bb-modCommon02 > p.bb-gameDescription')
         game_month = re.search(r'\d{1,2}月', str(p)).group()[:-1]
         game_day = re.search(r'\d{1,2}日', str(p)).group()[:-1]
         day_week = re.search(r'（[日月火水木金土]）', str(p)).group().replace('（', '').replace('）', '')
 
-        year = int(re.search(r'\d{4}', self.html_path).group())
-        # self.pitch_data_dict['date'] = f'{year}-{game_month}-{game_day}'
-        # self.pitch_data_dict['day_week'] = day_week
-        # return self.pitch_data_dict['date'], self.pitch_data_dict['day_week']
-        return f'{year}-{game_month.zfill(2)}-{game_day.zfill(2)}', day_week
+        # year = int(re.search(r'\d{4}', self.html_path).group())
+        return f'{self.year}-{game_month.zfill(2)}-{game_day.zfill(2)}', day_week
 
     def take_stadium(self) -> str:
         p = self.soup.select_one('#contentMain > div > div.bb-main > div.bb-modCommon02 > p.bb-gameDescription')

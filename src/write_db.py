@@ -2,6 +2,7 @@ import scraping as sp
 import glob
 import sqlite3
 import os
+import re
 from typing import Union, Tuple, List
 import datetime
 
@@ -252,7 +253,7 @@ class GameDbWriter:
             if file == files[-1]:
                 continue
 
-            indexPage = sp.IndexPageScraper(file)
+            indexPage = sp.IndexPageScraper(file, file[-12:-5])
             pdd = indexPage.get_pitch_data_dict()
 
             if indexPage.judge_non_butter():
@@ -335,7 +336,8 @@ def write_db(db_name: str, year: int):
     last_update_date_str = gameDbOperator.take_last_update_date()
 
     for stats_file, index_dir in zip(stats_files, index_dirs):
-        statsPage = sp.StatsPageScraper(stats_file)
+        year = int(re.search(r'\d{4}', stats_file).group())
+        statsPage = sp.StatsPageScraper(stats_file, year)
         stats_date_str = statsPage.take_date()[0]
         stats_date = datetime.datetime.strptime(stats_date_str, '%Y-%m-%d')
 
