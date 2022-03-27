@@ -329,10 +329,10 @@ def write_db(db_name: str, year: int):
     stats_files = sorted(glob.glob(f'../HTML/{year}/stats/*.html'))
     index_dirs = sorted(glob.glob(f'../HTML/{year}/index/*'))
 
-    gameDbOperator = GameDbOperator(db_name)
-    id_at_bat = gameDbOperator.take_last_id_at_bat()
-    game_id = gameDbOperator.take_game_id()
-    last_update_date_str = gameDbOperator.take_last_update_date()
+    game_db_operator = GameDbOperator(db_name)
+    id_at_bat = game_db_operator.take_last_id_at_bat()
+    game_id = game_db_operator.take_game_id()
+    last_update_date_str = game_db_operator.take_last_update_date()
 
     for stats_file, index_dir in zip(stats_files, index_dirs):
         statsPage = sp.StatsPageScraper(stats_file)
@@ -347,11 +347,11 @@ def write_db(db_name: str, year: int):
         if stats_date <= last_update_date:
             continue
 
-        gameDbWriter = GameDbWriter(gameDbOperator, stats_file, index_dir, id_at_bat, game_id)
+        gameDbWriter = GameDbWriter(game_db_operator, stats_file, index_dir, id_at_bat, game_id)
         gameDbWriter.write_index_dir()
         gameDbWriter.write_stats_file()
 
         id_at_bat = gameDbWriter.get_id_at_bat()
         game_id += 1
 
-    gameDbOperator.close()
+    game_db_operator.close()
