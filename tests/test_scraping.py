@@ -46,7 +46,7 @@ class TestIndexPageScraper(unittest.TestCase):
         self.assertEqual(self.secondPage.take_match_batter_number(), 9)
         self.assertEqual(self.fourthPage.take_match_batter_number(), 1)
 
-        self.assertEqual(self.indexPage.take_defense(),
+        self.assertEqual(self.indexPage.take_fielder_id(),
                          ('大城卓三', 'ウィーラー', '若林晃弘', '岡本和真', '坂本勇人', '松原聖弥', '丸佳浩', '梶谷隆幸'))
 
         self.assertEqual(self.indexPage.take_result_at_bat(), ('見逃し三振', '135km/h スライダー'))

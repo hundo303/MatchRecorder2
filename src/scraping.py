@@ -154,18 +154,18 @@ class IndexPageScraper(PageScraper):
         self.pitch_data_dict['match_batter_number'] = match_batter_number
         return self.pitch_data_dict['match_batter_number']
 
-    def take_defense(self) -> Tuple[str, str, str, str, str, str, str, str]:
-        defense_dic = {'捕': '不明', '一': '不明', '二': '不明', '三': '不明', '遊': '不明',
-                       '左': '不明', '中': '不明', '右': '不明', '指': '不明', '投': '不明',
-                       '打': '不明', '走': '不明'}
+    def take_fielder_id(self) -> Tuple[str, str, str, str, str, str, str, str]:
+        fielder_id_dic = {'捕': -1, '一': -1, '二': -1, '三': -1, '遊': -1,
+                          '左': -1, '中': -1, '右': -1, '指': -1, '投': -1,
+                          '打': -1, '走': -1}
 
         pitcher_side = 'L' if self.top_or_bottom == 1 else 'R'
-        defense_side = 'h' if self.top_or_bottom == 1 else 'a'
+        # defense_side = 'h' if self.top_or_bottom == 1 else 'a'
 
         div_pitcher = self.soup.select_one(f'#pitcher{pitcher_side} > div.card')
         team_number_str = div_pitcher.get('class')[1]
 
-        tr_list = self.soup.select(f'#gm_memh > table.bb-splitsTable.bb-splitsTable--team1 > tbody > tr')
+        tr_list = self.soup.select(f'#gm_memh > table.bb-splitsTable.bb-splitsTable--{team_number_str} > tbody > tr')
 
         for tr in tr_list:
             td_list = tr.select('td')
@@ -173,21 +173,24 @@ class IndexPageScraper(PageScraper):
                 continue
 
             position = td_list[1].get_text()
-            player = td_list[2].a.get_text().replace(' ', '')
-            if not position == '':
-                if defense_dic[position] == '不明':
-                    defense_dic[position] = player
-                else:
-                    defense_dic[position] += f'||{player}'
+            # player = td_list[2].a.get_text().replace(' ', '')
+            player_id_str = td_list[2].a.get('href').split('/')[3]
+            player_id = int(player_id_str)
 
-        self.pitch_data_dict['c'] = defense_dic['捕']
-        self.pitch_data_dict['first'] = defense_dic['一']
-        self.pitch_data_dict['second'] = defense_dic['二']
-        self.pitch_data_dict['third'] = defense_dic['三']
-        self.pitch_data_dict['ss'] = defense_dic['遊']
-        self.pitch_data_dict['lf'] = defense_dic['左']
-        self.pitch_data_dict['cf'] = defense_dic['中']
-        self.pitch_data_dict['rf'] = defense_dic['右']
+            if not position == '':
+                if fielder_id_dic[position] == -1:
+                    fielder_id_dic[position] = player_id
+                else:
+                    fielder_id_dic[position] = -1
+
+        self.pitch_data_dict['c_id'] = fielder_id_dic['捕']
+        self.pitch_data_dict['first_id'] = fielder_id_dic['一']
+        self.pitch_data_dict['second_id'] = fielder_id_dic['二']
+        self.pitch_data_dict['third_id'] = fielder_id_dic['三']
+        self.pitch_data_dict['ss_id'] = fielder_id_dic['遊']
+        self.pitch_data_dict['lf_id'] = fielder_id_dic['左']
+        self.pitch_data_dict['cf_id'] = fielder_id_dic['中']
+        self.pitch_data_dict['rf_id'] = fielder_id_dic['右']
 
         return_tuple = (self.pitch_data_dict['c'],
                         self.pitch_data_dict['first'],
@@ -298,7 +301,7 @@ class IndexPageScraper(PageScraper):
         self.take_match_player_data()
         self.take_num_at_bat()
         self.take_match_batter_number()
-        self.take_defense()
+        self.take_fielder_id()
         self.take_result_at_bat()
         self.take_runner()
         self.take_match_team()
@@ -312,8 +315,8 @@ class IndexPageScraper(PageScraper):
 class PlayerPageScraper(PageScraper):
     def take_player_profile(self) -> dict:
         player_name: str = self.soup.select_one('#contentMain > div > div.bb-main > '
-                                           'div.bb-modCommon01 > div > div > div >'
-                                           ' ruby > h1').get_text().replace(' ', '')
+                                                'div.bb-modCommon01 > div > div > div >'
+                                                ' ruby > h1').get_text().replace(' ', '')
 
         team_name_dict = {'team1': '巨人', 'team2': 'ヤクルト', 'team3': 'DeNA',
                           'team4': '中日', 'team5': '阪神', 'team6': '広島',
@@ -325,11 +328,11 @@ class PlayerPageScraper(PageScraper):
         team_name: str = team_name_dict[team_num]
 
         uniform_number: str = self.soup.select_one('#contentMain > div > div.bb-main > '
-                                              'div.bb-modCommon01 > div > div > div > '
-                                              'div > p.bb-profile__number').get_text()
+                                                   'div.bb-modCommon01 > div > div > div > '
+                                                   'div > p.bb-profile__number').get_text()
         position: str = self.soup.select_one('#contentMain > div > div.bb-main > '
-                                        'div.bb-modCommon01 > div > div > div > div > '
-                                        'p.bb-profile__position').get_text()
+                                             'div.bb-modCommon01 > div > div > div > div > '
+                                             'p.bb-profile__position').get_text()
 
         dominant_arm = self.soup.select_one('#contentMain > div > div.bb-main > '
                                             'div.bb-modCommon01 > div > div > '

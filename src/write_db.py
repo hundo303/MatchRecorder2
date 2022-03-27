@@ -27,14 +27,14 @@ class DbOperator:
                   'batter_left INTEGER NOT NULL, '
                   'in_box_count INTEGER NOT NULL, '
                   'match_number_times INTEGER NOT NULL, '
-                  'c TEXT NOT NULL, '
-                  'first TEXT NOT NULL, '
-                  'second TEXT NOT NULL, '
-                  'third TEXT NOT NULL, '
-                  'ss TEXT NOT NULL, '
-                  'lf TEXT NOT NULL, '
-                  'cf TEXT NOT NULL, '
-                  'rf TEXT NOT NULL, '
+                  'c_id INTEGER NOT NULL, '
+                  'first_id INTEGER NOT NULL, '
+                  'second_id INTEGER NOT NULL, '
+                  'third_id INTEGER NOT NULL, '
+                  'ss_id INTEGER NOT NULL, '
+                  'lf_id INTEGER NOT NULL, '
+                  'cf_id INTEGER NOT NULL, '
+                  'rf_id INTEGER NOT NULL, '
                   'first_runner TEXT, '
                   'second_runner TEXT, '
                   'third_runner TEXT, '
@@ -190,9 +190,9 @@ class GameDbOperator(DbOperator):
 
         cur.executemany(
             'INSERT INTO pitch_data (id_at_bat, pitcher_id, pitcher_left, batter_id, batter_left, in_box_count, '
-            'match_number_times, c, first, second, third, ss, lf, cf, rf, first_runner, second_runner, '
-            'third_runner, number_pitch_at_bat, number_pitch_game, ball_type, speed, ball_result, strike_count, '
-            'ball_count, top_coordinate, left_coordinate, steal, steal_non_pitch) '
+            'match_number_times, c_id, first_id, second_id, third_id, ss_id, lf_id, cf_id, rf_id, first_runner, '
+            'second_runner, third_runner, number_pitch_at_bat, number_pitch_game, ball_type, speed, ball_result,'
+            'strike_count, ball_count, top_coordinate, left_coordinate, steal, steal_non_pitch) '
             'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
             insert_data_list)
 
@@ -253,25 +253,24 @@ class GameDbWriter:
             if file == files[-1]:
                 continue
 
-            indexPage = sp.IndexPageScraper(file)
-            pdd = indexPage.get_pitch_data_dict()
+            index_page = sp.IndexPageScraper(file)
+            pdd = index_page.get_pitch_data_dict()
 
-            if indexPage.judge_non_butter():
+            if index_page.judge_non_butter():
                 continue
 
             save_pitch_data_list = []
             for ball_data in pdd['ball_data_list']:
                 save_pitch_data_list.append((self.id_at_bat, pdd['pitcher_id'], pdd['pitcher_left'], pdd['batter_id'],
                                              pdd['batter_left'], pdd['num_at_bat'], pdd['match_batter_number'],
-                                             pdd['c'], pdd['first'], pdd['second'], pdd['third'], pdd['ss'], pdd['lf'],
-                                             pdd['cf'], pdd['rf'], pdd['first_runner'], pdd['second_runner'],
-                                             pdd['third_runner'], ball_data['pitch_number_in_at_bat'],
-                                             ball_data['pitch_number_in_game'], ball_data['type_of_pitch'],
-                                             ball_data['speed'],
+                                             pdd['c_id'], pdd['first_id'], pdd['second_id'], pdd['third_id'],
+                                             pdd['ss_id'], pdd['lf_id'], pdd['cf_id'], pdd['rf_id'],
+                                             pdd['first_runner'], pdd['second_runner'], pdd['third_runner'],
+                                             ball_data['pitch_number_in_at_bat'], ball_data['pitch_number_in_game'],
+                                             ball_data['type_of_pitch'], ball_data['speed'],
                                              ball_data['pitch_result_text'], ball_data['strike_count'],
-                                             ball_data['ball_count'],
-                                             ball_data['top'], ball_data['left'], pdd['write_steal'],
-                                             pdd['steal_non_pitch']))
+                                             ball_data['ball_count'], ball_data['top'], ball_data['left'],
+                                             pdd['write_steal'], pdd['steal_non_pitch']))
 
             if files[i][-9:-7] != files[i + 1][-9:7]:
                 inning = int(file[-12:-10])
