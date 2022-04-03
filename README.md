@@ -17,6 +17,11 @@ pip3 install beautifulsoup4
 
 # Usage
 
+srcディレクトリに移動
+```bash
+cd src
+```
+
 試合のデータのダウンロード
 ```bash
 python3 main.py
